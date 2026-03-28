@@ -9,7 +9,6 @@ import { deleteFileFromCloudinary } from "../config/cloudinary.config";
 import { deleteUploadedFilesFromGlobalErrorHandler } from "../utils/deleteUploadedFilesFromGlobalErrorHandler";
 import { handlePrismaClientKnownRequestError, handlePrismaClientUnknownError, handlePrismaClientValidationError, handlerPrismaClientInitializationError, handlerPrismaClientRustPanicError } from "../errorHelpers/handlePrismaErrors";
 import { Prisma } from "../../generated/prisma/client";
-import { error } from "better-auth/api";
 
 export const globalErrorHandler = async (
   err: any,
@@ -37,37 +36,37 @@ export const globalErrorHandler = async (
   let message: string = "Internal Server Error";
   let stack: string | undefined = undefined;
 
-    if(err instanceof Prisma.PrismaClientKnownRequestError){
-        const simplifiedError = handlePrismaClientKnownRequestError(err);
-        statusCode = simplifiedError.statusCode as number
-        message = simplifiedError.message
-        errorSources = [...simplifiedError.errorSources]
-        stack = err.stack;
-    } else if(err instanceof Prisma.PrismaClientUnknownRequestError){
-        const simplifiedError = handlePrismaClientUnknownError(err);
-        statusCode = simplifiedError.statusCode as number
-        message = simplifiedError.message
-        errorSources = [...simplifiedError.errorSources]
-        stack = err.stack;
-    } else if(err instanceof Prisma.PrismaClientValidationError){
-        const simplifiedError = handlePrismaClientValidationError(err)
-        statusCode = simplifiedError.statusCode as number
-        message = simplifiedError.message
-        errorSources = [...simplifiedError.errorSources]
-        stack = err.stack;
-    } else if (err instanceof Prisma.PrismaClientRustPanicError) {
-        const simplifiedError = handlerPrismaClientRustPanicError();
-        statusCode = simplifiedError.statusCode as number
-        message = simplifiedError.message
-        errorSources = [...simplifiedError.errorSources]
-        stack = err.stack;
-    } else if(err instanceof Prisma.PrismaClientInitializationError){
-        const simplifiedError = handlerPrismaClientInitializationError(err);
-        statusCode = simplifiedError.statusCode as number
-        message = simplifiedError.message
-        errorSources = [...simplifiedError.errorSources]
-        stack = err.stack;
-    }
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    const simplifiedError = handlePrismaClientKnownRequestError(err);
+    statusCode = simplifiedError.statusCode as number
+    message = simplifiedError.message
+    errorSources = [...simplifiedError.errorSources]
+    stack = err.stack;
+  } else if (err instanceof Prisma.PrismaClientUnknownRequestError) {
+    const simplifiedError = handlePrismaClientUnknownError(err);
+    statusCode = simplifiedError.statusCode as number
+    message = simplifiedError.message
+    errorSources = [...simplifiedError.errorSources]
+    stack = err.stack;
+  } else if (err instanceof Prisma.PrismaClientValidationError) {
+    const simplifiedError = handlePrismaClientValidationError(err)
+    statusCode = simplifiedError.statusCode as number
+    message = simplifiedError.message
+    errorSources = [...simplifiedError.errorSources]
+    stack = err.stack;
+  } else if (err instanceof Prisma.PrismaClientRustPanicError) {
+    const simplifiedError = handlerPrismaClientRustPanicError();
+    statusCode = simplifiedError.statusCode as number
+    message = simplifiedError.message
+    errorSources = [...simplifiedError.errorSources]
+    stack = err.stack;
+  } else if (err instanceof Prisma.PrismaClientInitializationError) {
+    const simplifiedError = handlerPrismaClientInitializationError(err);
+    statusCode = simplifiedError.statusCode as number
+    message = simplifiedError.message
+    errorSources = [...simplifiedError.errorSources]
+    stack = err.stack;
+  }
   else if (err instanceof z.ZodError) {
     const simplifiedError = handleZodError(err);
     statusCode = simplifiedError.statusCode as number;
@@ -104,6 +103,6 @@ export const globalErrorHandler = async (
     error: envVars.NODE_ENV === "development" ? err : undefined,
     stack: envVars.NODE_ENV === "development" ? stack : undefined,
   };
-  
+
   res.status(statusCode).json(errorResponse);
 };

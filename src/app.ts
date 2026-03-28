@@ -6,6 +6,8 @@ import { auth } from "./app/lib/auth";
 import path from "path";
 import qs from "qs";
 import { IndexRoutes } from "./app/routes";
+import { notFound } from "./app/middleware/notFound";
+import { globalErrorHandler } from "./app/middleware/globalErrorHandler";
 
 const app: Application = express();
 
@@ -34,7 +36,7 @@ app.get("/", async (req: Request, res: Response) => {
 
 app.use("/api/v1", IndexRoutes);
 
-
-
+app.use(globalErrorHandler)
+app.use(notFound)
 
 export default app;
