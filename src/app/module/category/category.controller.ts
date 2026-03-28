@@ -26,7 +26,6 @@ const getCategoryById = catchAsync(async (req: Request, res: Response) => {
 });
 
 const createCategory = catchAsync(async (req: Request, res: Response) => {
-    console.log("Creating category with payload:", req.user); // Debug log
     const payload = req.body;
     const category = await CategoryService.createCategory(payload);
     sendResponse(res, {

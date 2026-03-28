@@ -36,8 +36,6 @@ export const checkAuth = (...authRoles: Role[]) => async (req: Request, res: Res
                 }
             });
 
-            console.log(sessionData)
-
             if (sessionData && sessionData.user) {
                 user = sessionData.user;
 

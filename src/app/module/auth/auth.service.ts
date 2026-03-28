@@ -13,7 +13,6 @@ import { IChangePasswordPayload, ILoginUserPayload, IRegisterPayload } from "./a
 
 const registerUser = async (payload: IRegisterPayload & { isModerator?: boolean; profileData?: any }) => {
     const { name, email, password, isModerator, profileData } = payload;
-    console.log("Payload : ", name, email, password, isModerator, profileData)
     const data = await auth.api.signUpEmail({
         body: {
             name,
@@ -276,7 +275,6 @@ const changePassword = async (payload: IChangePasswordPayload, sessionToken: str
             Authorization: `Bearer ${sessionToken}`
         })
     })
-    console.log(session)
 
     if (!session) {
         throw new AppError(status.UNAUTHORIZED, "Invalid session token");
