@@ -45,11 +45,39 @@ const handleStripeWebhookEvent = catchAsync(async (req: Request, res: Response) 
     }
 })
 
+const handleBkashWebhookEvent = catchAsync(async (req: Request, res: Response) => {
+    sendResponse(res, { httpStatusCode: status.OK, success: true, message: "bKash webhook received" });
+});
+
+const handleSslWebhookEvent = catchAsync(async (req: Request, res: Response) => {
+    sendResponse(res, { httpStatusCode: status.OK, success: true, message: "SSLCommerce webhook received" });
+});
+
+const handleNagadWebhookEvent = catchAsync(async (req: Request, res: Response) => {
+    sendResponse(res, { httpStatusCode: status.OK, success: true, message: "Nagad webhook received" });
+});
+
+const handleCardWebhookEvent = catchAsync(async (req: Request, res: Response) => {
+    sendResponse(res, { httpStatusCode: status.OK, success: true, message: "Card webhook received" });
+});
+
 const createCheckoutSession = catchAsync(async (req: Request, res: Response) => {
     const userId = req.user.userId;
-    const { ideaId } = req.body;
-    const result = await PaymentService.createCheckoutSession(userId, ideaId);
+    const { ideaId, paymentMethod } = req.body;
+    const method = paymentMethod || 'STRIPE';
 
+    let result;
+    if (method === 'BKASH') {
+        result = await PaymentService.createBkashSession(userId, ideaId);
+    } else if (method === 'SSLECOMMERCE') {
+        result = await PaymentService.createSslSession(userId, ideaId);
+    } else if (method === 'NAGAD') {
+        result = await PaymentService.createNagadSession(userId, ideaId);
+    } else if (method === 'CARD') {
+        result = await PaymentService.createCardSession(userId, ideaId);
+    } else {
+        result = await PaymentService.createStripeSession(userId, ideaId);
+    }
     sendResponse(res, {
         httpStatusCode: status.OK,
         success: true,
@@ -83,6 +111,10 @@ const getAllPurchases = catchAsync(async (req: Request, res: Response) => {
 
 export const PaymentController = {
     handleStripeWebhookEvent,
+    handleBkashWebhookEvent,
+    handleSslWebhookEvent,
+    handleNagadWebhookEvent,
+    handleCardWebhookEvent,
     createCheckoutSession,
     getMyPurchases,
     getAllPurchases

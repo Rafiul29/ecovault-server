@@ -12,6 +12,7 @@ import { AttachmentRoutes } from "../module/attachment/attachment.route";
 import { IdeaReviewRoutes } from "../module/ideaReview/ideaReview.route";
 import { ModeratorRoutes } from "../module/moderator/moderator.route";
 import { PaymentRoutes } from "../module/payment/payment.route";
+import { SubscriptionRoutes } from "../module/subscription/subscription.route";
 
 const router = Router();
 
@@ -28,5 +29,6 @@ router.use("/attachments", AttachmentRoutes);
 router.use("/idea-reviews", IdeaReviewRoutes);
 router.use("/moderators", ModeratorRoutes);
 router.use("/payments", PaymentRoutes);
+router.use("/subscriptions", SubscriptionRoutes);
 
 export const IndexRoutes:Router = router;

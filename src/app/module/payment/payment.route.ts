@@ -28,9 +28,33 @@ router.get(
 );
 
 router.post(
-  '/webhook',
+  '/webhook/stripe',
   express.raw({ type: 'application/json' }),
   PaymentController.handleStripeWebhookEvent
+);
+
+router.post(
+  '/webhook/bkash',
+  express.raw({ type: 'application/json' }),
+  PaymentController.handleBkashWebhookEvent
+);
+
+router.post(
+  '/webhook/sslcommerce',
+  express.raw({ type: 'application/json' }),
+  PaymentController.handleSslWebhookEvent
+);
+
+router.post(
+  '/webhook/nagad',
+  express.raw({ type: 'application/json' }),
+  PaymentController.handleNagadWebhookEvent
+);
+
+router.post(
+  '/webhook/card',
+  express.raw({ type: 'application/json' }),
+  PaymentController.handleCardWebhookEvent
 );
 
 export const PaymentRoutes: Router = router;

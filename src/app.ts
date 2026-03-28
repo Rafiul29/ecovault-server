@@ -9,6 +9,7 @@ import { IndexRoutes } from "./app/routes";
 import { notFound } from "./app/middleware/notFound";
 import { globalErrorHandler } from "./app/middleware/globalErrorHandler";
 import { PaymentController } from "./app/module/payment/payment.controller";
+import { envVars } from "./app/config/env";
 
 const app: Application = express();
 
@@ -17,7 +18,7 @@ app.set("view engine", 'ejs')
 app.set("views", path.resolve(process.cwd(), `src/app/templates`))
 
 app.use(cors({
-  origin: ["http://localhost:3000", "http://localhost:5000"],
+  origin: [envVars.FRONTEND_URL, "http://localhost:3000", "http://localhost:5000"],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   allowedHeaders: ["Content-Type", "Authorization"]
