@@ -53,6 +53,9 @@ model Idea {
   updatedAt   DateTime  @updatedAt
   publishedAt DateTime?
 
+  isDeleted Boolean @default(false)
+  deletedAt DateTime?
+
   @@index([authorId])
   @@index([status])
   @@index([trendingScore(sort: Desc)])
@@ -144,6 +147,9 @@ model Watchlist {
   idea   Idea   @relation(fields: [ideaId], references: [id], onDelete: Cascade)
   ideaId String
 
+  isDeleted Boolean @default(false)
+  deletedAt DateTime?
+
   createdAt DateTime @default(now())
 
   @@unique([userId, ideaId])
@@ -174,6 +180,9 @@ model IdeaReview {
   reviewerId String
   status     IdeaStatus
   feedback   String     @db.Text
+
+  isDeleted Boolean @default(false)
+  deletedAt DateTime?
 
   createdAt DateTime @default(now())
 
