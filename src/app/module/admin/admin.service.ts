@@ -192,7 +192,7 @@ const changeUserRole = async (user : IRequestUser, payload : IChangeUserRolePayl
         throw new AppError(status.BAD_REQUEST, "You cannot change your own role");
     }
 
-    if(userToChangeRole.role === Role.DOCTOR || userToChangeRole.role === Role.PATIENT){
+    if(userToChangeRole.role === Role.MEMBER || userToChangeRole.role === Role.MODERATOR){
         throw new AppError(status.BAD_REQUEST, "You cannot change the role of doctor or patient user. If you want to change the role of doctor or patient user, you have to delete the user and recreate with new role");
     }
 
