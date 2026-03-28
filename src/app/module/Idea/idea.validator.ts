@@ -1,10 +1,5 @@
 import z from "zod";
 
-const categoryTagSchema = z.object({
-    id: z.string().min(1, "ID is required"),
-    shouldDelete: z.boolean(),
-});
-
 export const createIdeaZodSchema = z.object({
     title: z.string().min(3, "Title must be at least 3 characters"),
     slug: z.string().min(3, "Slug must be at least 3 characters").optional(),

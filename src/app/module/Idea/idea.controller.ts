@@ -6,14 +6,28 @@ import { createIdeaZodSchema, updateIdeaZodSchema } from "./idea.validator";
 import { validateRequest } from "../../middleware/validateRequest";
 import { catchAsync } from "../../shared/catchAsync";
 import { sendResponse } from "../../shared/sendResponse";
+import { IQueryParams } from "@/app/interfaces/query.interface";
 
 const getAllIdeas = catchAsync(async (req: Request, res: Response) => {
-    const ideas = await IdeaService.getAllIdeas();
+    const result = await IdeaService.getAllIdeas(req.query as IQueryParams);
     sendResponse(res, {
         httpStatusCode: httpStatus.OK,
         success: true,
         message: "Ideas retrieved successfully",
-        data: ideas,
+        data: result.data,
+        meta: result.meta,
+    });
+});
+
+const getMyIdeas = catchAsync(async (req: Request, res: Response) => {
+    const authorId = req.user?.userId;
+    const result = await IdeaService.getMyIdeas(authorId, req.query as IQueryParams);
+    sendResponse(res, {
+        httpStatusCode: httpStatus.OK,
+        success: true,
+        message: "My ideas retrieved successfully",
+        data: result.data,
+        meta: result.meta,
     });
 });
 
@@ -72,6 +86,7 @@ const deleteIdea = catchAsync(async (req: Request, res: Response) => {
 
 export const IdeaController = {
     getAllIdeas,
+    getMyIdeas,
     getIdeaById,
     createIdea,
     updateIdea,

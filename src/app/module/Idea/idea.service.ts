@@ -3,18 +3,37 @@ import AppError from "../../errorHelpers/AppError";
 import { prisma } from "../../lib/prisma";
 import { ICreateIdeaPayload, IUpdateIdeaPayload } from "./idea.interface";
 import { normalizeSlug } from "../../utils/slug";
-import { IRequestUser } from "@/app/interfaces/requestUser.interface";
+import { QueryBuilder } from "../../utils/QueryBuilder";
+import { ideaFilterableFields, ideaIncludeConfig, ideaSearchableFields } from "./idea.constant";
+import { IQueryParams } from "../../interfaces/query.interface";
 
-const getAllIdeas = async () => {
-    const ideas = await prisma.idea.findMany({
-        include: {
-            categories: { include: { category: true } },
-            tags: { include: { tag: true } },
-            author: { select: { id: true, name: true, email: true } },
-        },
-        orderBy: { createdAt: "desc" },
-    });
-    return ideas;
+const getAllIdeas = async (queryParams: IQueryParams) => {
+    const ideaQuery = new QueryBuilder(prisma.idea, queryParams, {
+        searchableFields: ideaSearchableFields,
+        filterableFields: ideaFilterableFields,
+    })
+        .search()
+        .filter()
+        .paginate()
+        .sort()
+        .dynamicInclude(ideaIncludeConfig);
+
+    return await ideaQuery.execute();
+};
+
+const getMyIdeas = async (authorId: string, queryParams: IQueryParams) => {
+    const ideaQuery = new QueryBuilder(prisma.idea, queryParams, {
+        searchableFields: ideaSearchableFields,
+        filterableFields: ideaFilterableFields,
+    })
+        .where({ authorId, isDeleted: false })
+        .search()
+        .filter()
+        .paginate()
+        .sort()
+        .dynamicInclude(ideaIncludeConfig);
+
+    return await ideaQuery.execute();
 };
 
 const getIdeaById = async (id: string) => {
@@ -235,6 +254,7 @@ const deleteIdea = async (id: string, authorId: string) => {
 
 export const IdeaService = {
     getAllIdeas,
+    getMyIdeas,
     getIdeaById,
     createIdea,
     updateIdea,

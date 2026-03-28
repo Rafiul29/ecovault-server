@@ -8,6 +8,7 @@ import { createIdeaZodSchema, updateIdeaZodSchema } from "./idea.validator";
 const router = express.Router();
 
 router.get("/", IdeaController.getAllIdeas);
+router.get("/my-ideas", checkAuth(Role.MEMBER, Role.MODERATOR, Role.ADMIN, Role.SUPER_ADMIN), IdeaController.getMyIdeas);
 router.get("/:id", IdeaController.getIdeaById);
 
 router.post("/", validateRequest(createIdeaZodSchema), checkAuth(Role.ADMIN, Role.SUPER_ADMIN, Role.MODERATOR), IdeaController.createIdea);

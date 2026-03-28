@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -217,6 +218,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <!-- Header -->
@@ -239,11 +241,15 @@
             <div class="info-box">
                 <div class="info-row">
                     <span class="info-label">Invoice ID:</span>
-                    <span class="info-value"><strong><%= invoiceId %></strong></span>
+                    <span class="info-value"><strong>
+                            <%= invoiceId %>
+                        </strong></span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">Transaction ID:</span>
-                    <span class="info-value"><%= transactionId %></span>
+                    <span class="info-value">
+                        <%= transactionId %>
+                    </span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">Payment Status:</span>
@@ -251,7 +257,9 @@
                 </div>
                 <div class="info-row">
                     <span class="info-label">Payment Date:</span>
-                    <span class="info-value"><%= paymentDate %></span>
+                    <span class="info-value">
+                        <%= paymentDate %>
+                    </span>
                 </div>
             </div>
 
@@ -260,13 +268,15 @@
             <div class="details-grid">
                 <div class="details-box">
                     <p><span class="label">Item Description:</span></p>
-                    <p><strong><%= ideaTitle %></strong></p>
+                    <p><strong>
+                            <%= ideaTitle %>
+                        </strong></p>
                 </div>
             </div>
 
             <!-- Amount Section -->
             <div class="section-title">Payment Summary</div>
-            
+
             <div style="background-color: #f9f9f9; padding: 20px; border-radius: 4px; margin-bottom: 20px;">
                 <div class="info-row">
                     <span class="info-label">Subtotal:</span>
@@ -276,7 +286,8 @@
 
             <div class="amount-box">
                 <div class="amount-label">Total Amount Paid</div>
-                <div class="amount-value">$<%= Number(amount).toFixed(2) %></div>
+                <div class="amount-value">$<%= Number(amount).toFixed(2) %>
+                </div>
             </div>
 
             <div class="payment-status">
@@ -290,7 +301,7 @@
                 </p>
                 <% if (invoiceUrl) { %>
                     <a href="<%= invoiceUrl %>" class="download-btn">Download Invoice PDF</a>
-                <% } %>
+                    <% } %>
             </div>
 
             <div class="divider"></div>
@@ -302,7 +313,8 @@
             </p>
 
             <p style="font-size: 13px; color: #666;">
-                If you have any questions regarding this payment or need assistance, please don't hesitate to contact our support team.
+                If you have any questions regarding this payment or need assistance, please don't hesitate to contact
+                our support team.
             </p>
         </div>
 
@@ -314,7 +326,7 @@
                 &copy; 2026 EcoVault. All rights reserved.
             </p>
             <p style="margin-top: 10px;">
-                <a href="https://ecovault.com">Visit our website</a> | 
+                <a href="https://ecovault.com">Visit our website</a> |
                 <a href="mailto:support@ecovault.com">Contact Support</a>
             </p>
             <p style="margin-top: 15px; font-size: 11px; color: #999;">
@@ -323,4 +335,5 @@
         </div>
     </div>
 </body>
+
 </html>
