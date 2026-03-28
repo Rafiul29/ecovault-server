@@ -8,6 +8,7 @@ import qs from "qs";
 import { IndexRoutes } from "./app/routes";
 import { notFound } from "./app/middleware/notFound";
 import { globalErrorHandler } from "./app/middleware/globalErrorHandler";
+import { PaymentController } from "./app/module/payment/payment.controller";
 
 const app: Application = express();
 
@@ -23,6 +24,9 @@ app.use(cors({
 }))
 
 app.use("/api/auth", toNodeHandler(auth))
+
+app.post("/webhook", express.raw({ type: "application/json" }), PaymentController.handleStripeWebhookEvent)
+
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());

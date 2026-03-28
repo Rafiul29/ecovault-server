@@ -1,0 +1,152 @@
+import PDFDocument from 'pdfkit';
+
+interface InvoiceData {
+    invoiceId: string;
+    userName: string;
+    userEmail: string;
+    ideaTitle: string;
+    amount: number;
+    transactionId: string;
+    paymentDate: string;
+}
+
+export const generateInvoicePdf = async (data: InvoiceData): Promise<Buffer> => {
+    return new Promise((resolve, reject) => {
+        try {
+            const doc = new PDFDocument({
+                size: 'A4',
+                margin: 50,
+            });
+
+            const chunks: Buffer[] = [];
+
+            doc.on('data', (chunk) => {
+                chunks.push(chunk);
+            });
+
+            doc.on('end', () => {
+                resolve(Buffer.concat(chunks));
+            });
+
+            doc.on('error', (error) => {
+                reject(error);
+            });
+
+            // Header
+            doc.fontSize(24).font('Helvetica-Bold').text('INVOICE', {
+                align: 'center',
+            });
+
+            doc.moveDown(0.5);
+            doc
+                .fontSize(10)
+                .font('Helvetica')
+                .text('EcoVault', {
+                    align: 'center',
+                });
+            doc.text('Empowering Ideas, Cultivating the Future', { align: 'center' });
+
+            doc.moveDown(1);
+
+            // Horizontal line
+            doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+
+            doc.moveDown(1);
+
+            // Invoice Details - Left Column
+            doc.fontSize(11).font('Helvetica-Bold').text('Invoice Information');
+            doc
+                .fontSize(10)
+                .font('Helvetica')
+                .text(`Invoice ID: ${data.invoiceId}`)
+                .text(`Payment Date: ${new Date(data.paymentDate).toLocaleDateString()}`)
+                .text(`Transaction ID: ${data.transactionId}`);
+
+            doc.moveDown(0.8);
+
+            // Buyer Information
+            doc.fontSize(11).font('Helvetica-Bold').text('Buyer Information');
+            doc
+                .fontSize(10)
+                .font('Helvetica')
+                .text(`Name: ${data.userName}`)
+                .text(`Email: ${data.userEmail}`);
+
+            doc.moveDown(0.8);
+
+            // Idea Details
+            doc.fontSize(11).font('Helvetica-Bold').text('Idea Details');
+            doc
+                .fontSize(10)
+                .font('Helvetica')
+                .text(`Title: ${data.ideaTitle}`);
+
+            doc.moveDown(1);
+
+            // Horizontal line
+            doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+
+            doc.moveDown(1);
+
+            // Amount Table
+            const tableTop = doc.y;
+            const col1X = 50;
+            const col2X = 450;
+
+            doc.fontSize(11).font('Helvetica-Bold').text('Payment Summary', col1X, tableTop);
+
+            doc.moveDown(0.8);
+
+            // Table Header
+            const headerY = doc.y;
+            doc.fontSize(10).font('Helvetica-Bold');
+            doc.text('Description', col1X, headerY);
+            doc.text('Amount', col2X, headerY, { align: 'right' });
+
+            // Separator line
+            doc.moveTo(col1X, doc.y).lineTo(col2X + 80, doc.y).stroke();
+
+            doc.moveDown(0.5);
+
+            // Amount Row
+            const amountY = doc.y;
+            doc.fontSize(10).font('Helvetica');
+            doc.text('Idea Purchase Fee', col1X, amountY);
+            doc.text(`$${data.amount.toFixed(2)}`, col2X, amountY, { align: 'right' });
+
+            doc.moveDown(0.8);
+
+            // Total Row
+            const totalY = doc.y;
+            doc.fontSize(11).font('Helvetica-Bold');
+            doc.text('Total Amount', col1X, totalY);
+            doc.text(`$${data.amount.toFixed(2)}`, col2X, totalY, { align: 'right' });
+
+            // Separator line
+            doc.moveTo(col1X, doc.y).lineTo(col2X + 80, doc.y).stroke();
+
+            doc.moveDown(1.5);
+
+            // Footer
+            doc.fontSize(9).font('Helvetica').text(
+                'Thank you for your purchase. This is an electronically generated invoice.',
+                {
+                    align: 'center',
+                }
+            );
+
+            doc.text('If you have any questions, please contact us at support@ecovault.com', {
+                align: 'center',
+            });
+
+            doc.text('Payment processed securely through Stripe', {
+                align: 'center',
+            });
+
+            // End the document
+            doc.end();
+        } catch (error) {
+            reject(error);
+        }
+    });
+};

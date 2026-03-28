@@ -45,10 +45,10 @@ export const uploadFileToCloudinary = async (
         cloudinary.uploader.upload_stream(
             {
                 resource_type: "auto",
-                public_id: `health-care/${folder}/${uniqueName}`,
-                folder: `health-care/${folder}`,
+                public_id: `ecovault/${folder}/${uniqueName}`,
+                folder: `ecovault/${folder}`,
             },
-            (error, result) => {
+            (error: any, result: any) => {
                 if (error) {
                     return reject(new AppError(status.INTERNAL_SERVER_ERROR, "Failed to upload file to Cloudinary"));
                 }
