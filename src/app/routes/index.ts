@@ -10,6 +10,7 @@ import { FollowRoutes } from "../module/follow/follow.route";
 import { WatchlistRoutes } from "../module/watchlist/watchlist.route";
 import { AttachmentRoutes } from "../module/attachment/attachment.route";
 import { IdeaReviewRoutes } from "../module/ideaReview/ideaReview.route";
+import { ModeratorRoutes } from "../module/moderator/moderator.route";
 
 const router = Router();
 
@@ -24,5 +25,6 @@ router.use("/follows", FollowRoutes);
 router.use("/watchlists", WatchlistRoutes);
 router.use("/attachments", AttachmentRoutes);
 router.use("/idea-reviews", IdeaReviewRoutes);
+router.use("/moderators", ModeratorRoutes);
 
 export const IndexRoutes:Router = router;
