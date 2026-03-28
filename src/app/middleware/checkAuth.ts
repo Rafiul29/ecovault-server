@@ -8,17 +8,23 @@ import { prisma } from "../lib/prisma";
 import { CookieUtils } from "../utils/cookie";
 import { jwtUtils } from "../utils/jwt";
 
+/**
+ * Middleware to check authentication and authorization (RBAC)
+ * Supports both Session (Better-Auth) and JWT Access Token authentication.
+ * 
+ * @param authRoles - Array of roles allowed to access the route. If empty, all authenticated users are allowed.
+ * Note: Role.SUPER_ADMIN always has access if role checking is active.
+ */
 export const checkAuth = (...authRoles: Role[]) => async (req: Request, res: Response, next: NextFunction) => {
     try {
-        //Session Token Verification
         const sessionToken = CookieUtils.getCookie(req, "better-auth.session_token");
+        const accessToken = CookieUtils.getCookie(req, 'accessToken');
 
-        if (!sessionToken) {
-            throw new Error('Unauthorized access! No session token provided.');
-        }
+        let user: any = null;
 
+        // 1. Preferred Authentication: Session Token (Better-Auth)
         if (sessionToken) {
-            const sessionExists = await prisma.session.findFirst({
+            const sessionData = await prisma.session.findFirst({
                 where: {
                     token: sessionToken,
                     expiresAt: {
@@ -28,14 +34,17 @@ export const checkAuth = (...authRoles: Role[]) => async (req: Request, res: Res
                 include: {
                     user: true,
                 }
-            })
+            });
 
-            if (sessionExists && sessionExists.user) {
-                const user = sessionExists.user;
+            console.log(sessionData)
 
+            if (sessionData && sessionData.user) {
+                user = sessionData.user;
+
+                // Session Refresh Logic
                 const now = new Date();
-                const expiresAt = new Date(sessionExists.expiresAt)
-                const createdAt = new Date(sessionExists.createdAt)
+                const expiresAt = new Date(sessionData.expiresAt);
+                const createdAt = new Date(sessionData.createdAt);
 
                 const sessionLifeTime = expiresAt.getTime() - createdAt.getTime();
                 const timeRemaining = expiresAt.getTime() - now.getTime();
@@ -44,57 +53,56 @@ export const checkAuth = (...authRoles: Role[]) => async (req: Request, res: Res
                 if (percentRemaining < 20) {
                     res.setHeader('X-Session-Refresh', 'true');
                     res.setHeader('X-Session-Expires-At', expiresAt.toISOString());
-                    res.setHeader('X-Time-Remaining', timeRemaining.toString());
-
-                    console.log("Session Expiring Soon!!");
-                }
-
-                if (user.status === UserStatus.BLOCKED || user.status === UserStatus.DELETED) {
-                    throw new AppError(status.UNAUTHORIZED, 'Unauthorized access! User is not active.');
-                }
-
-                if (user.isDeleted) {
-                    throw new AppError(status.UNAUTHORIZED, 'Unauthorized access! User is deleted.');
-                }
-
-                if (authRoles.length > 0 && !authRoles.includes(user.role)) {
-                    throw new AppError(status.FORBIDDEN, 'Forbidden access! You do not have permission to access this resource.');
-                }
-
-                req.user = {
-                    userId : user.id,
-                    role : user.role,
-                    email : user.email,
+                    console.log("Session expiring soon - marking for refresh");
                 }
             }
+        }
 
-            const accessToken = CookieUtils.getCookie(req, 'accessToken');
+        // 2. Fallback Authentication: Access Token (JWT)
+        if (!user && accessToken) {
+            const verifiedToken = jwtUtils.verifyToken(accessToken, envVars.ACCESS_TOKEN_SECRET);
 
-            if (!accessToken) {
-                throw new AppError(status.UNAUTHORIZED, 'Unauthorized access! No access token provided.');
+            if (verifiedToken.success && verifiedToken.data) {
+                // Fetch fresh user data from DB to ensure state is current (status/roles)
+                const userId = (verifiedToken.data as any).userId || (verifiedToken.data as any).id;
+
+                if (userId) {
+                    user = await prisma.user.findUnique({
+                        where: { id: userId }
+                    });
+                }
             }
-
-
         }
 
-        //Access Token Verification
-        const accessToken = CookieUtils.getCookie(req, 'accessToken');
-
-        if (!accessToken) {
-            throw new AppError(status.UNAUTHORIZED, 'Unauthorized access! No access token provided.');
+        // If no user found via any method, unauthorized
+        if (!user) {
+            throw new AppError(status.UNAUTHORIZED, 'Unauthorized access! Please log in to continue.');
         }
 
-        const verifiedToken = jwtUtils.verifyToken(accessToken, envVars.ACCESS_TOKEN_SECRET);
-
-        if (!verifiedToken.success) {
-            throw new AppError(status.UNAUTHORIZED, 'Unauthorized access! Invalid access token.');
+        // 3. Common Security Checks
+        if (user.status === UserStatus.BLOCKED || user.status === UserStatus.DELETED || user.isDeleted) {
+            throw new AppError(status.UNAUTHORIZED, 'Unauthorized access! Your account is not active.');
         }
 
-        if (authRoles.length > 0 && !authRoles.includes(verifiedToken.data!.role as Role)) {
-            throw new AppError(status.FORBIDDEN, 'Forbidden access! You do not have permission to access this resource.');
+        // 4. Role Authorization (RBAC)
+        if (authRoles.length > 0) {
+            // Check if user role is in the authorized list
+            // Super Admin bypasses all specific role requirements
+            const isAuthorized = authRoles.includes(user.role) || user.role === Role.SUPER_ADMIN;
+
+            if (!isAuthorized) {
+                throw new AppError(status.FORBIDDEN, 'Forbidden access! You do not have permission to access this resource.');
+            }
         }
 
-        next()
+        // 5. Attach user info to request object
+        req.user = {
+            userId: user.id,
+            role: user.role,
+            email: user.email,
+        };
+
+        next();
     } catch (error: any) {
         next(error);
     }

@@ -1,17 +1,8 @@
-import status from "http-status";
+import httpStatus from "http-status";
 import AppError from "../../errorHelpers/AppError";
 import { prisma } from "../../lib/prisma";
 import { ICreateCategoryPayload, IUpdateCategoryPayload } from "./category.interface";
-
-const normalizeSlug = (value: string) => {
-    return value
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, "")
-        .replace(/\s+/g, "-")
-        .replace(/-+/g, "-")
-        .replace(/^-+|-+$/g, "");
-};
+import { normalizeSlug } from "../../utils/slug";
 
 const getAllCategories = async () => {
     const categories = await prisma.category.findMany({
@@ -26,7 +17,7 @@ const getCategoryById = async (id: string) => {
     });
 
     if (!category) {
-        throw new AppError(status.NOT_FOUND, "Category not found");
+        throw new AppError(httpStatus.NOT_FOUND, "Category not found");
     }
 
     return category;
@@ -37,15 +28,25 @@ const createCategory = async (payload: ICreateCategoryPayload) => {
 
     const baseSlug = normalizeSlug(slug ?? name);
 
+    // Check for existing category with same name or slug
     const existing = await prisma.category.findFirst({
         where: {
-            OR: [{ name }, { slug: baseSlug }],
+            OR: [
+                { name },
+                { slug: baseSlug }
+            ],
         },
     });
+
     if (existing) {
-        throw new AppError(status.CONFLICT, "Category name or slug already exists");
+        if (existing.name === name) {
+            throw new AppError(httpStatus.CONFLICT, "Category name already exists");
+        } else {
+            throw new AppError(httpStatus.CONFLICT, "Category slug already exists");
+        }
     }
 
+    // Create category with base slug first
     const category = await prisma.category.create({
         data: {
             name,
@@ -57,11 +58,11 @@ const createCategory = async (payload: ICreateCategoryPayload) => {
         },
     });
 
+    // Update slug with ID appended
+    const finalSlug = `${baseSlug}-${category.id}`;
     const updatedCategory = await prisma.category.update({
         where: { id: category.id },
-        data: {
-            slug: `${baseSlug}-${category.id}`,
-        },
+        data: { slug: finalSlug },
     });
 
     return updatedCategory;
@@ -70,48 +71,81 @@ const createCategory = async (payload: ICreateCategoryPayload) => {
 const updateCategory = async (id: string, payload: IUpdateCategoryPayload) => {
     const category = await prisma.category.findUnique({ where: { id } });
     if (!category) {
-        throw new AppError(status.NOT_FOUND, "Category not found");
+        throw new AppError(httpStatus.NOT_FOUND, "Category not found");
     }
 
-    let slugToUpdate: string | undefined;
+    const { name, slug, description, icon, color, isActive } = payload;
 
-    if (payload.name || payload.slug) {
-        const whereItems: Array<Record<string, unknown>> = [];
-        if (payload.name) whereItems.push({ name: payload.name });
-        if (payload.slug) whereItems.push({ slug: normalizeSlug(payload.slug) });
+    // Validate uniqueness if name or slug is being updated
+    if (name || slug) {
+        const orConditions: Array<Record<string, any>> = [];
+        if (name) orConditions.push({ name });
+        if (slug) orConditions.push({ slug: normalizeSlug(slug) });
 
-        const conflict = await prisma.category.findFirst({
+        const existing = await prisma.category.findFirst({
             where: {
-                AND: [{ id: { not: id } }],
-                OR: whereItems,
+                AND: [
+                    { id: { not: id } },
+                    { OR: orConditions }
+                ],
             },
         });
-        if (conflict) {
-            throw new AppError(status.CONFLICT, "Category name or slug already exists");
-        }
 
-        if (payload.slug) {
-            slugToUpdate = `${normalizeSlug(payload.slug)}-${id}`;
-        } else if (payload.name) {
-            slugToUpdate = `${normalizeSlug(payload.name)}-${id}`;
+        if (existing) {
+            if (name && existing.name === name) {
+                throw new AppError(httpStatus.CONFLICT, "Category name already exists");
+            } else {
+                throw new AppError(httpStatus.CONFLICT, "Category slug already exists");
+            }
         }
     }
 
-    const updated = await prisma.category.update({
+    // Prepare update data
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (icon !== undefined) updateData.icon = icon;
+    if (color !== undefined) updateData.color = color;
+    if (isActive !== undefined) updateData.isActive = isActive;
+
+    // Handle slug update separately for consistency
+    let finalSlug: string | undefined;
+    if (slug || name) {
+        const baseSlug = normalizeSlug(slug ?? name!);
+        finalSlug = `${baseSlug}-${id}`;
+    }
+
+    // Update main category data (excluding slug)
+    await prisma.category.update({
         where: { id },
-        data: {
-            ...payload,
-            ...(slugToUpdate ? { slug: slugToUpdate } : {}),
-        },
+        data: updateData,
     });
 
-    return updated;
+    // Update slug separately if needed
+    if (finalSlug) {
+        await prisma.category.update({
+            where: { id },
+            data: { slug: finalSlug },
+        });
+    }
+
+    // Return updated category
+    return await getCategoryById(id);
 };
 
 const deleteCategory = async (id: string) => {
     const category = await prisma.category.findUnique({ where: { id } });
     if (!category) {
-        throw new AppError(status.NOT_FOUND, "Category not found");
+        throw new AppError(httpStatus.NOT_FOUND, "Category not found");
+    }
+
+    // Check if category is being used in any ideas
+    const ideaCategoryCount = await prisma.ideaCategory.count({
+        where: { categoryId: id },
+    });
+
+    if (ideaCategoryCount > 0) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Cannot delete category that is associated with existing ideas");
     }
 
     await prisma.category.delete({ where: { id } });

@@ -3,7 +3,7 @@
 model Idea {
   id               String   @id @default(cuid())
   title            String
-  slug             String   @unique
+  slug             String?   @unique
   description      String   @db.Text
   problemStatement String   @db.Text
   proposedSolution String   @db.Text

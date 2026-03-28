@@ -10,7 +10,7 @@ const router = Router();
 router.get("/", TagController.getAllTags);
 router.get("/:id", TagController.getTagById);
 
-router.post("/", checkAuth(Role.ADMIN, Role.SUPER_ADMIN), validateRequest(createTagZodSchema), TagController.createTag);
+router.post("/", checkAuth(Role.ADMIN, Role.SUPER_ADMIN, Role.MODERATOR), validateRequest(createTagZodSchema), TagController.createTag);
 router.patch("/:id", checkAuth(Role.ADMIN, Role.SUPER_ADMIN), validateRequest(updateTagZodSchema), TagController.updateTag);
 router.delete("/:id", checkAuth(Role.SUPER_ADMIN), TagController.deleteTag);
 

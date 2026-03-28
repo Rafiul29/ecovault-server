@@ -1,0 +1,484 @@
+{
+  "info": {
+    "name": "EcoVault - Idea API",
+    "description": "Complete Postman collection for EcoVault Idea CRUD operations with professional endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "item": [
+    {
+      "name": "Idea Operations",
+      "item": [
+        {
+          "name": "Create Idea",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sustainable Water Filtration System\",\n  \"slug\": \"sustainable-water-filtration\",\n  \"description\": \"A comprehensive system designed to provide clean drinking water using eco-friendly filtration methods and renewable energy sources\",\n  \"problemStatement\": \"Many communities in developing regions lack access to clean drinking water due to inadequate infrastructure and high costs of traditional water treatment systems\",\n  \"proposedSolution\": \"Our solution combines passive solar heating with multi-stage biodegradable filtration media to create an affordable, sustainable water purification system that requires minimal maintenance\",\n  \"images\": [\n    \"https://example.com/image1.jpg\",\n    \"https://example.com/image2.jpg\"\n  ],\n  \"categories\": [\n    \"category-id-1\",\n    \"category-id-2\"\n  ],\n  \"tags\": [\n    \"tag-id-1\",\n    \"tag-id-2\"\n  ],\n  \"status\": \"DRAFT\",\n  \"isPaid\": false,\n  \"price\": 0,\n  \"isFeatured\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ideas",
+              "host": ["{{baseUrl}}"],
+              "path": ["ideas"]
+            },
+            "description": "Create a new idea with full details including title, description, problem statement, proposed solution, and optional relationships with categories and tags"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Sustainable Water Filtration System\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/ideas",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["ideas"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"idea-uuid-1\",\n  \"title\": \"Sustainable Water Filtration System\",\n  \"slug\": \"sustainable-water-filtration-idea-uuid-1\",\n  \"description\": \"A comprehensive system...\",\n  \"problemStatement\": \"Many communities...\",\n  \"proposedSolution\": \"Our solution...\",\n  \"images\": [...],\n  \"authorId\": \"user-id\",\n  \"status\": \"DRAFT\",\n  \"isPaid\": false,\n  \"price\": 0,\n  \"isFeatured\": false,\n  \"categories\": [...],\n  \"tags\": [...],\n  \"createdAt\": \"2026-03-28T10:00:00Z\",\n  \"updatedAt\": \"2026-03-28T10:00:00Z\"\n}"
+            },
+            {
+              "name": "400 Bad Request - Invalid Category/Tag",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/ideas",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["ideas"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "header": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"One or more category IDs are invalid\",\n  \"statusCode\": 400\n}"
+            },
+            {
+              "name": "409 Conflict - Slug Already Exists",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/ideas",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["ideas"]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "header": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Idea slug already exists\",\n  \"statusCode\": 409\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get All Ideas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ideas",
+              "host": ["{{baseUrl}}"],
+              "path": ["ideas"]
+            },
+            "description": "Retrieve all ideas with pagination, sorting, and relationship data including categories, tags, and author information"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/ideas",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["ideas"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "[\n  {\n    \"id\": \"idea-uuid-1\",\n    \"title\": \"Sustainable Water Filtration System\",\n    \"slug\": \"sustainable-water-filtration-idea-uuid-1\",\n    \"description\": \"A comprehensive system...\",\n    \"problemStatement\": \"Many communities...\",\n    \"proposedSolution\": \"Our solution...\",\n    \"images\": [],\n    \"authorId\": \"user-id\",\n    \"status\": \"DRAFT\",\n    \"isPaid\": false,\n    \"price\": 0,\n    \"isFeatured\": false,\n    \"categories\": [\n      {\n        \"ideaId\": \"idea-uuid-1\",\n        \"categoryId\": \"category-id-1\",\n        \"category\": {\n          \"id\": \"category-id-1\",\n          \"name\": \"Environment\",\n          \"slug\": \"environment-category-id-1\"\n        }\n      }\n    ],\n    \"tags\": [\n      {\n        \"ideaId\": \"idea-uuid-1\",\n        \"tagId\": \"tag-id-1\",\n        \"tag\": {\n          \"id\": \"tag-id-1\",\n          \"name\": \"Water\",\n          \"slug\": \"water-tag-id-1\"\n        }\n      }\n    ],\n    \"author\": {\n      \"id\": \"user-id\",\n      \"name\": \"John Doe\",\n      \"email\": \"john@example.com\"\n    },\n    \"createdAt\": \"2026-03-28T10:00:00Z\",\n    \"updatedAt\": \"2026-03-28T10:00:00Z\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Get Idea by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ideas/{{ideaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["ideas", "{{ideaId}}"]
+            },
+            "description": "Retrieve a specific idea by ID with complete details including categories, tags, author info, comments, and votes"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/ideas/{{ideaId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["ideas", "{{ideaId}}"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"idea-uuid-1\",\n  \"title\": \"Sustainable Water Filtration System\",\n  \"slug\": \"sustainable-water-filtration-idea-uuid-1\",\n  \"description\": \"A comprehensive system...\",\n  \"problemStatement\": \"Many communities...\",\n  \"proposedSolution\": \"Our solution...\",\n  \"images\": [],\n  \"authorId\": \"user-id\",\n  \"status\": \"DRAFT\",\n  \"isPaid\": false,\n  \"price\": 0,\n  \"isFeatured\": false,\n  \"categories\": [...],\n  \"tags\": [...],\n  \"author\": {...},\n  \"comments\": [...],\n  \"votes\": [...],\n  \"createdAt\": \"2026-03-28T10:00:00Z\",\n  \"updatedAt\": \"2026-03-28T10:00:00Z\"\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/ideas/invalid-id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["ideas", "invalid-id"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "header": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Idea not found\",\n  \"statusCode\": 404\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Idea",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Title for Water Filtration System\",\n  \"slug\": \"updated-water-filtration\",\n  \"description\": \"Updated comprehensive description...\",\n  \"problemStatement\": \"Updated problem statement...\",\n  \"proposedSolution\": \"Updated proposed solution...\",\n  \"images\": [\n    \"https://example.com/new-image.jpg\"\n  ],\n  \"categories\": [\n    \"new-category-id-1\",\n    \"new-category-id-2\"\n  ],\n  \"tags\": [\n    \"new-tag-id-1\"\n  ],\n  \"status\": \"UNDER_REVIEW\",\n  \"isPaid\": true,\n  \"price\": 99.99,\n  \"isFeatured\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ideas/{{ideaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["ideas", "{{ideaId}}"]
+            },
+            "description": "Update an existing idea. Only the author can update their own ideas. Supports partial updates with transaction-wrapped relationship updates"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Updated Title\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/ideas/{{ideaId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["ideas", "{{ideaId}}"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"idea-uuid-1\",\n  \"title\": \"Updated Title for Water Filtration System\",\n  \"slug\": \"updated-water-filtration-idea-uuid-1\",\n  \"description\": \"Updated comprehensive description...\",\n  \"status\": \"UNDER_REVIEW\",\n  \"isPaid\": true,\n  \"price\": 99.99,\n  \"isFeatured\": true,\n  \"categories\": [...],\n  \"tags\": [...],\n  \"createdAt\": \"2026-03-28T10:00:00Z\",\n  \"updatedAt\": \"2026-03-28T10:30:00Z\"\n}"
+            },
+            {
+              "name": "403 Forbidden - Not Author",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/ideas/{{ideaId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["ideas", "{{ideaId}}"]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "header": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You can only update your own ideas\",\n  \"statusCode\": 403\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/ideas/invalid-id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["ideas", "invalid-id"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "header": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Idea not found\",\n  \"statusCode\": 404\n}"
+            },
+            {
+              "name": "409 Conflict - Slug Already Exists",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"slug\": \"existing-slug\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/ideas/{{ideaId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["ideas", "{{ideaId}}"]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "header": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Idea slug already exists\",\n  \"statusCode\": 409\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Idea",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ideas/{{ideaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["ideas", "{{ideaId}}"]
+            },
+            "description": "Delete an idea. Only the author can delete their own ideas. This operation cannot be undone"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/ideas/{{ideaId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["ideas", "{{ideaId}}"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"message\": \"Idea deleted successfully\"\n}"
+            },
+            {
+              "name": "403 Forbidden - Not Author",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/ideas/{{ideaId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["ideas", "{{ideaId}}"]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "header": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You can only delete your own ideas\",\n  \"statusCode\": 403\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/ideas/invalid-id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["ideas", "invalid-id"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "header": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Idea not found\",\n  \"statusCode\": 404\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "your-access-token-here",
+      "type": "string"
+    },
+    {
+      "key": "ideaId",
+      "value": "idea-uuid-1",
+      "type": "string"
+    }
+  ]
+}

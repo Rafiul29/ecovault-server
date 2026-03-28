@@ -1,0 +1,127 @@
+{
+  "info": {
+    "name": "EcoVault - Idea API",
+    "description": "Postman collection for Idea CRUD operations in EcoVault platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "idea_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Get All Ideas",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/ideas",
+          "host": ["{{base_url}}"],
+          "path": ["ideas"]
+        },
+        "description": "Retrieve all ideas (public endpoint)"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Idea by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/ideas/{{idea_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["ideas", "{{idea_id}}"]
+        },
+        "description": "Retrieve a specific idea by ID (public endpoint)"
+      },
+      "response": []
+    },
+    {
+      "name": "Create New Idea",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "accessToken={{access_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Sustainable Energy Solution\",\n  \"slug\": \"sustainable-energy-solution\",\n  \"description\": \"A comprehensive solution for renewable energy implementation\",\n  \"problemStatement\": \"Current energy sources are depleting and causing environmental damage\",\n  \"proposedSolution\": \"Implement solar and wind power infrastructure with smart grid technology\",\n  \"images\": [\n    \"https://example.com/image1.jpg\",\n    \"https://example.com/image2.jpg\"\n  ],\n  \"categories\": [\n    \"category-id-1\",\n    \"category-id-2\"\n  ],\n  \"tags\": [\n    \"tag-id-1\",\n    \"tag-id-2\"\n  ],\n  \"status\": \"DRAFT\",\n  \"isPaid\": false,\n  \"price\": 0,\n  \"isFeatured\": false\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/ideas",
+          "host": ["{{base_url}}"],
+          "path": ["ideas"]
+        },
+        "description": "Create a new idea (requires authentication)"
+      },
+      "response": []
+    },
+    {
+      "name": "Update Idea",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "accessToken={{access_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Updated Sustainable Energy Solution\",\n  \"description\": \"An updated comprehensive solution for renewable energy\",\n  \"problemStatement\": \"Updated problem statement\",\n  \"proposedSolution\": \"Updated proposed solution\",\n  \"images\": [\n    \"https://example.com/updated-image.jpg\"\n  ],\n  \"categories\": [\n    \"category-id-1\",\n    \"category-id-3\"\n  ],\n  \"tags\": [\n    \"tag-id-1\",\n    \"tag-id-3\"\n  ],\n  \"status\": \"UNDER_REVIEW\",\n  \"isPaid\": true,\n  \"price\": 29.99,\n  \"isFeatured\": true\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/ideas/{{idea_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["ideas", "{{idea_id}}"]
+        },
+        "description": "Update an existing idea (requires authentication, author only)"
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Idea",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Cookie",
+            "value": "accessToken={{access_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/ideas/{{idea_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["ideas", "{{idea_id}}"]
+        },
+        "description": "Delete an idea (requires authentication, author only)"
+      },
+      "response": []
+    }
+  ]
+}

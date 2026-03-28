@@ -1,17 +1,8 @@
-import status from "http-status";
+import httpStatus from "http-status";
 import AppError from "../../errorHelpers/AppError";
 import { prisma } from "../../lib/prisma";
 import { ICreateTagPayload, IUpdateTagPayload } from "./tag.interface";
-
-const normalizeSlug = (value: string) => {
-    return value
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, "")
-        .replace(/\s+/g, "-")
-        .replace(/-+/g, "-")
-        .replace(/^-+|-+$/g, "");
-};
+import { normalizeSlug } from "../../utils/slug";
 
 const getAllTags = async () => {
     const tags = await prisma.tag.findMany({
@@ -26,35 +17,48 @@ const getTagById = async (id: string) => {
     });
 
     if (!tag) {
-        throw new AppError(status.NOT_FOUND, "Tag not found");
+        throw new AppError(httpStatus.NOT_FOUND, "Tag not found");
     }
 
     return tag;
 };
 
 const createTag = async (payload: ICreateTagPayload) => {
-    const baseSlug = normalizeSlug(payload.slug ?? payload.name);
+    const { name, slug } = payload;
 
+    const baseSlug = normalizeSlug(slug ?? name);
+
+    // Check for existing tag with same name or slug
     const existing = await prisma.tag.findFirst({
         where: {
-            OR: [{ name: payload.name }, { slug: baseSlug }],
+            OR: [
+                { name },
+                { slug: baseSlug }
+            ],
         },
     });
 
     if (existing) {
-        throw new AppError(status.CONFLICT, "Tag name or slug already exists");
+        if (existing.name === name) {
+            throw new AppError(httpStatus.CONFLICT, "Tag name already exists");
+        } else {
+            throw new AppError(httpStatus.CONFLICT, "Tag slug already exists");
+        }
     }
 
+    // Create tag with base slug first
     const tag = await prisma.tag.create({
         data: {
-            name: payload.name,
+            name,
             slug: baseSlug,
         },
     });
 
+    // Update slug with ID appended
+    const finalSlug = `${baseSlug}-${tag.id}`;
     const updatedTag = await prisma.tag.update({
         where: { id: tag.id },
-        data: { slug: `${baseSlug}-${tag.id}` },
+        data: { slug: finalSlug },
     });
 
     return updatedTag;
@@ -63,43 +67,77 @@ const createTag = async (payload: ICreateTagPayload) => {
 const updateTag = async (id: string, payload: IUpdateTagPayload) => {
     const tag = await prisma.tag.findUnique({ where: { id } });
     if (!tag) {
-        throw new AppError(status.NOT_FOUND, "Tag not found");
+        throw new AppError(httpStatus.NOT_FOUND, "Tag not found");
     }
 
-    if (payload.name || payload.slug) {
-        const orFilters: Array<Record<string, unknown>> = [];
-        if (payload.name) orFilters.push({ name: payload.name });
-        if (payload.slug) orFilters.push({ slug: normalizeSlug(payload.slug) });
+    const { name, slug } = payload;
 
-        const conflict = await prisma.tag.findFirst({
+    // Validate uniqueness if name or slug is being updated
+    if (name || slug) {
+        const orConditions: Array<Record<string, any>> = [];
+        if (name) orConditions.push({ name });
+        if (slug) orConditions.push({ slug: normalizeSlug(slug) });
+
+        const existing = await prisma.tag.findFirst({
             where: {
-                AND: [{ id: { not: id } }],
-                OR: orFilters,
+                AND: [
+                    { id: { not: id } },
+                    { OR: orConditions }
+                ],
             },
         });
 
-        if (conflict) {
-            throw new AppError(status.CONFLICT, "Tag name or slug already exists");
+        if (existing) {
+            if (name && existing.name === name) {
+                throw new AppError(httpStatus.CONFLICT, "Tag name already exists");
+            } else {
+                throw new AppError(httpStatus.CONFLICT, "Tag slug already exists");
+            }
         }
     }
 
-    const slugToUpdate = payload.slug ? `${normalizeSlug(payload.slug)}-${id}` : payload.name ? `${normalizeSlug(payload.name)}-${id}` : undefined;
+    // Prepare update data
+    const updateData: any = {};
+    if (name) updateData.name = name;
 
-    const updated = await prisma.tag.update({
+    // Handle slug update separately for consistency
+    let finalSlug: string | undefined;
+    if (slug || name) {
+        const baseSlug = normalizeSlug(slug ?? name!);
+        finalSlug = `${baseSlug}-${id}`;
+    }
+
+    // Update main tag data (excluding slug)
+    await prisma.tag.update({
         where: { id },
-        data: {
-            ...payload,
-            ...(slugToUpdate ? { slug: slugToUpdate } : {}),
-        },
+        data: updateData,
     });
 
-    return updated;
+    // Update slug separately if needed
+    if (finalSlug) {
+        await prisma.tag.update({
+            where: { id },
+            data: { slug: finalSlug },
+        });
+    }
+
+    // Return updated tag
+    return await getTagById(id);
 };
 
 const deleteTag = async (id: string) => {
     const tag = await prisma.tag.findUnique({ where: { id } });
     if (!tag) {
-        throw new AppError(status.NOT_FOUND, "Tag not found");
+        throw new AppError(httpStatus.NOT_FOUND, "Tag not found");
+    }
+
+    // Check if tag is being used in any ideas
+    const ideaTagCount = await prisma.ideaTag.count({
+        where: { tagId: id },
+    });
+
+    if (ideaTagCount > 0) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Cannot delete tag that is associated with existing ideas");
     }
 
     await prisma.tag.delete({ where: { id } });
