@@ -1,0 +1,51 @@
+enum Role {
+  MEMBER
+  MODERATOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+  DELETED
+}
+
+enum IdeaStatus {
+  DRAFT
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum NotificationType {
+  IDEA_APPROVED
+  IDEA_REJECTED
+  NEW_COMMENT
+  COMMENT_REPLY
+  VOTE_MILESTONE
+  PAYMENT_RECEIVED
+  SYSTEM_ANNOUNCEMENT
+}
+
+enum SubscriptionTier {
+  FREE
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
+enum ReactionType {
+  LIKE
+  LOVE
+  INSIGHTFUL
+  INSPIRING
+  CONCERNED
+}

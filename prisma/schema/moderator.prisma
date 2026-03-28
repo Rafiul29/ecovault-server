@@ -1,0 +1,32 @@
+model Moderator {
+  id String @id @default(cuid())
+  
+  name          String
+  email         String  @unique
+  profilePhoto  String?
+  contactNumber String?
+
+  bio             String? @db.Text
+  address         String?
+  phoneNumber     String?
+  reputationScore Int     @default(0)
+  socialLinks     Json? // { twitter: "...", github: "..." }
+
+  // Metrics move here from redundant Member/Premium models
+  onboarded     Boolean @default(false)
+  activityScore Int     @default(0)
+
+  isActive    Boolean  @default(true)
+  assignNotes String?  @db.Text
+  assignedAt  DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isActive])
+  @@map("moderators")
+}

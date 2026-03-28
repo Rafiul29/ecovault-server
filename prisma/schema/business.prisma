@@ -1,0 +1,183 @@
+// ============== CORE BUSINESS MODELS ==============
+
+model Idea {
+  id               String   @id @default(cuid())
+  title            String
+  slug             String   @unique
+  description      String   @db.Text
+  problemStatement String   @db.Text
+  proposedSolution String   @db.Text
+  images           String[] // Cloudinary/S3 URLs
+
+  // Categorization & Labeling
+  categories IdeaCategory[]
+  tags       IdeaTag[]
+
+  // Ownership
+  author   User   @relation(fields: [authorId], references: [id])
+  authorId String
+
+  // Lifecycle
+  status        IdeaStatus @default(DRAFT)
+  adminFeedback String?    @db.Text
+  reviewedBy    String?
+  reviewedAt    DateTime?
+
+  // Commercials
+  isPaid Boolean @default(false)
+  price  Float?  @default(0)
+
+  // High-Impact/Featured
+  isFeatured Boolean   @default(false)
+  featuredAt DateTime?
+
+  // Metrics (Denormalized for performance)
+  viewCount     Int   @default(0)
+  upvoteCount   Int   @default(0)
+  downvoteCount Int   @default(0)
+  trendingScore Float @default(0)
+
+  // Full-text search support (PostgreSQL specific)
+  // Requires manual migration for GIN index
+  searchVector Unsupported("tsvector")?
+
+  // Relations
+  comments      Comment[]
+  votes         Vote[]
+  purchases     IdeaPurchase[]
+  watchlists    Watchlist[]
+  attachments   Attachment[]
+  reviewHistory IdeaReview[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  publishedAt DateTime?
+
+  @@index([authorId])
+  @@index([status])
+  @@index([trendingScore(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@map("ideas")
+}
+
+model Category {
+  id          String         @id @default(cuid())
+  name        String         @unique
+  slug        String         @unique
+  description String?
+  icon        String?
+  color       String?
+  isActive    Boolean        @default(true)
+  ideas       IdeaCategory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+  @@map("categories")
+}
+
+model IdeaCategory {
+  ideaId     String @map("idea_id")
+  categoryId String @map("category_id")
+
+  idea     Idea     @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  assignedAt DateTime @default(now()) @map("assigned_at")
+
+  @@id([ideaId, categoryId])
+  @@index([categoryId])
+  @@index([ideaId])
+  @@map("idea_categories")
+}
+
+model Tag {
+  id    String    @id @default(cuid())
+  name  String    @unique
+  slug  String    @unique
+  ideas IdeaTag[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+  @@map("tags")
+}
+
+model IdeaTag {
+  ideaId String @map("idea_id")
+  tagId  String @map("tag_id")
+
+  idea Idea @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  assignedAt DateTime @default(now()) @map("assigned_at")
+
+  @@id([ideaId, tagId])
+  @@index([tagId])
+  @@index([ideaId])
+  @@map("idea_tags")
+}
+
+model IdeaPurchase {
+  id        String @id @default(cuid())
+  user      User   @relation(fields: [userId], references: [id])
+  userId    String
+  idea      Idea   @relation(fields: [ideaId], references: [id])
+  ideaId    String
+  amount    Float
+  paymentId String // Reference to Payment.id
+
+  purchasedAt DateTime @default(now())
+
+  @@unique([userId, ideaId])
+  @@index([userId])
+  @@index([ideaId])
+  @@map("idea_purchases")
+}
+
+model Watchlist {
+  id     String @id @default(cuid())
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  idea   Idea   @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  ideaId String
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, ideaId])
+  @@index([userId])
+  @@index([ideaId])
+  @@map("watchlists")
+}
+
+model Attachment {
+  id     String  @id @default(cuid())
+  type   String // VIDEO, PDF, DOCUMENT
+  url    String
+  title  String?
+  idea   Idea    @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  ideaId String
+
+  createdAt DateTime @default(now())
+
+  @@index([ideaId])
+  @@map("attachments")
+}
+
+model IdeaReview {
+  id         String     @id @default(cuid())
+  idea       Idea       @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  ideaId     String
+  reviewer   User       @relation("reviewer", fields: [reviewerId], references: [id])
+  reviewerId String
+  status     IdeaStatus
+  feedback   String     @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([ideaId])
+  @@index([reviewerId])
+  @@map("idea_reviews")
+}

@@ -1,0 +1,75 @@
+model Notification {
+  id      String           @id @default(cuid())
+  type    NotificationType
+  title   String
+  message String
+  isRead  Boolean          @default(false)
+  data    Json? // { link: "/ideas/123", icon: "approval" }
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         String @id @default(cuid())
+  action     String // CREATE, UPDATE, DELETE, etc.
+  resource   String // Idea, User, Comment
+  resourceId String
+
+  actor   User   @relation("actor", fields: [actorId], references: [id])
+  actorId String
+
+  previousState Json?
+  newState      Json?
+  ipAddress     String?
+  userAgent     String?
+
+  createdAt DateTime @default(now())
+
+  @@index([resource, resourceId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model SearchHistory {
+  id           String @id @default(cuid())
+  query        String
+  resultsCount Int
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("search_histories")
+}
+
+model Newsletter {
+  id           String  @id @default(cuid())
+  email        String  @unique
+  isSubscribed Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@map("newsletters")
+}
+
+model Achievement {
+  id          String  @id @default(cuid())
+  name        String
+  description String
+  icon        String?
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+
+  earnedAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("achievements")
+}
