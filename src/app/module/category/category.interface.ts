@@ -1,6 +1,6 @@
 export interface ICreateCategoryPayload {
     name: string;
-    slug: string;
+    slug?: string;
     description?: string;
     icon?: string;
     color?: string;

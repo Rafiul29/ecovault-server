@@ -3,6 +3,16 @@ import AppError from "../../errorHelpers/AppError";
 import { prisma } from "../../lib/prisma";
 import { ICreateCategoryPayload, IUpdateCategoryPayload } from "./category.interface";
 
+const normalizeSlug = (value: string) => {
+    return value
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-+|-+$/g, "");
+};
+
 const getAllCategories = async () => {
     const categories = await prisma.category.findMany({
         orderBy: { createdAt: "desc" }
@@ -25,9 +35,11 @@ const getCategoryById = async (id: string) => {
 const createCategory = async (payload: ICreateCategoryPayload) => {
     const { name, slug, description, icon, color, isActive = true } = payload;
 
+    const baseSlug = normalizeSlug(slug ?? name);
+
     const existing = await prisma.category.findFirst({
         where: {
-            OR: [{ name }, { slug }],
+            OR: [{ name }, { slug: baseSlug }],
         },
     });
     if (existing) {
@@ -37,7 +49,7 @@ const createCategory = async (payload: ICreateCategoryPayload) => {
     const category = await prisma.category.create({
         data: {
             name,
-            slug,
+            slug: baseSlug,
             description: description ?? null,
             icon: icon ?? null,
             color: color ?? null,
@@ -45,7 +57,14 @@ const createCategory = async (payload: ICreateCategoryPayload) => {
         },
     });
 
-    return category;
+    const updatedCategory = await prisma.category.update({
+        where: { id: category.id },
+        data: {
+            slug: `${baseSlug}-${category.id}`,
+        },
+    });
+
+    return updatedCategory;
 };
 
 const updateCategory = async (id: string, payload: IUpdateCategoryPayload) => {
@@ -54,10 +73,12 @@ const updateCategory = async (id: string, payload: IUpdateCategoryPayload) => {
         throw new AppError(status.NOT_FOUND, "Category not found");
     }
 
+    let slugToUpdate: string | undefined;
+
     if (payload.name || payload.slug) {
         const whereItems: Array<Record<string, unknown>> = [];
         if (payload.name) whereItems.push({ name: payload.name });
-        if (payload.slug) whereItems.push({ slug: payload.slug });
+        if (payload.slug) whereItems.push({ slug: normalizeSlug(payload.slug) });
 
         const conflict = await prisma.category.findFirst({
             where: {
@@ -68,11 +89,20 @@ const updateCategory = async (id: string, payload: IUpdateCategoryPayload) => {
         if (conflict) {
             throw new AppError(status.CONFLICT, "Category name or slug already exists");
         }
+
+        if (payload.slug) {
+            slugToUpdate = `${normalizeSlug(payload.slug)}-${id}`;
+        } else if (payload.name) {
+            slugToUpdate = `${normalizeSlug(payload.name)}-${id}`;
+        }
     }
 
     const updated = await prisma.category.update({
         where: { id },
-        data: payload,
+        data: {
+            ...payload,
+            ...(slugToUpdate ? { slug: slugToUpdate } : {}),
+        },
     });
 
     return updated;
