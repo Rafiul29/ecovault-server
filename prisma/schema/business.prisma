@@ -57,7 +57,7 @@ model Idea {
   @@index([status])
   @@index([trendingScore(sort: Desc)])
   @@index([createdAt(sort: Desc)])
-  @@map("ideas")
+  @@map("idea")
 }
 
 model Category {
@@ -74,7 +74,7 @@ model Category {
   updatedAt DateTime @updatedAt
 
   @@index([slug])
-  @@map("categories")
+  @@map("category")
 }
 
 model IdeaCategory {
@@ -89,7 +89,7 @@ model IdeaCategory {
   @@id([ideaId, categoryId])
   @@index([categoryId])
   @@index([ideaId])
-  @@map("idea_categories")
+  @@map("idea_category")
 }
 
 model Tag {
@@ -102,7 +102,7 @@ model Tag {
   updatedAt DateTime @updatedAt
 
   @@index([slug])
-  @@map("tags")
+  @@map("tag")
 }
 
 model IdeaTag {
@@ -117,7 +117,7 @@ model IdeaTag {
   @@id([ideaId, tagId])
   @@index([tagId])
   @@index([ideaId])
-  @@map("idea_tags")
+  @@map("idea_tag")
 }
 
 model IdeaPurchase {
@@ -134,7 +134,7 @@ model IdeaPurchase {
   @@unique([userId, ideaId])
   @@index([userId])
   @@index([ideaId])
-  @@map("idea_purchases")
+  @@map("idea_purchase")
 }
 
 model Watchlist {
@@ -149,7 +149,7 @@ model Watchlist {
   @@unique([userId, ideaId])
   @@index([userId])
   @@index([ideaId])
-  @@map("watchlists")
+  @@map("watchlist")
 }
 
 model Attachment {
@@ -163,7 +163,7 @@ model Attachment {
   createdAt DateTime @default(now())
 
   @@index([ideaId])
-  @@map("attachments")
+  @@map("attachment")
 }
 
 model IdeaReview {
@@ -179,5 +179,5 @@ model IdeaReview {
 
   @@index([ideaId])
   @@index([reviewerId])
-  @@map("idea_reviews")
+  @@map("idea_review")
 }

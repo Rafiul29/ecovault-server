@@ -24,7 +24,7 @@ model Comment {
   @@index([ideaId])
   @@index([parentId])
   @@index([authorId])
-  @@map("comments")
+  @@map("comment")
 }
 
 model CommentReaction {
@@ -40,7 +40,7 @@ model CommentReaction {
   @@id([userId, commentId])
   @@index([commentId])
   @@index([userId])
-  @@map("comment_reactions")
+  @@map("comment_reaction")
 }
 
 model Vote {
@@ -59,7 +59,7 @@ model Vote {
   @@unique([userId, ideaId]) // Ensuring one vote per user per idea
   @@index([ideaId])
   @@index([userId])
-  @@map("votes")
+  @@map("vote")
 }
 
 model Follow {
@@ -74,5 +74,5 @@ model Follow {
   @@id([followerId, followingId])
   @@index([followingId])
   @@index([followerId])
-  @@map("follows")
+  @@map("follow")
 }

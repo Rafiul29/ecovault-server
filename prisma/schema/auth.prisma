@@ -45,7 +45,7 @@ model User {
   @@index([isDeleted])
   @@index([status])
   @@index([createdAt])
-  @@map("users")
+  @@map("user")
 }
 
 model Session {
@@ -62,7 +62,7 @@ model Session {
   @@unique([token])
   @@index([token])
   @@index([userId])
-  @@map("sessions")
+  @@map("session")
 }
 
 model Account {
@@ -82,7 +82,7 @@ model Account {
   updatedAt             DateTime  @updatedAt
 
   @@index([userId])
-  @@map("accounts")
+  @@map("account")
 }
 
 model Verification {
@@ -95,5 +95,5 @@ model Verification {
 
   @@index([identifier])
   @@index([value])
-  @@map("verifications")
+  @@map("verification")
 }

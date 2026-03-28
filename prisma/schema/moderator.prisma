@@ -28,5 +28,5 @@ model Moderator {
 
   @@index([userId])
   @@index([isActive])
-  @@map("moderators")
+  @@map("moderator")
 }

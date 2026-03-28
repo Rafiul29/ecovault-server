@@ -12,7 +12,7 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId, isRead])
-  @@map("notifications")
+  @@map("notification")
 }
 
 model AuditLog {
@@ -33,7 +33,7 @@ model AuditLog {
 
   @@index([resource, resourceId])
   @@index([createdAt])
-  @@map("audit_logs")
+  @@map("audit_log")
 }
 
 model SearchHistory {
@@ -47,7 +47,7 @@ model SearchHistory {
   createdAt DateTime @default(now())
 
   @@index([userId])
-  @@map("search_histories")
+  @@map("search_historie")
 }
 
 model Newsletter {
@@ -57,7 +57,7 @@ model Newsletter {
 
   createdAt DateTime @default(now())
 
-  @@map("newsletters")
+  @@map("newsletter")
 }
 
 model Achievement {
@@ -71,5 +71,5 @@ model Achievement {
   earnedAt DateTime @default(now())
 
   @@index([userId])
-  @@map("achievements")
+  @@map("achievement")
 }

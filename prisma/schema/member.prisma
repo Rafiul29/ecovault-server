@@ -1,3 +1,0 @@
-// Membership and Premium status are now handled via Subscription model (billing.prisma)
-// Common user metadata moved to Profile model (auth.prisma)
-// Access control logic should use user.role (enums.prisma)

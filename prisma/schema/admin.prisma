@@ -14,5 +14,5 @@ model Admin {
     user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
     @@index([userId])
-    @@map("admins")
+    @@map("admin")
 }

@@ -1,12 +1,14 @@
 import { Server } from "http";
 import app from "./app";
+import { envVars } from "./app/config/env";
+import { seedSuperAdmin } from "./app/utils/seed";
 
-const port =  5000;
+const port = envVars.PORT || 5000;
 
 let server: Server;
 const bootstrap = async () => {
     try {
-       
+        await seedSuperAdmin();
         server = app.listen(port, () => {
             console.log(`Server is running on http://localhost:${port}`);
         });
@@ -14,7 +16,6 @@ const bootstrap = async () => {
         console.error('Failed to start server:', error);
     }
 }
-
 
 // SIGTERM signal handler
 process.on("SIGTERM", () => {
