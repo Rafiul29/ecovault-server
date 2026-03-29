@@ -20,7 +20,7 @@ const storage = new CloudinaryStorage({
         const folder = extension === "pdf" ? "pdfs" : "images" as string;
 
         return {
-            folder: `health-care/${folder}`,
+            folder: `ecovault/${folder}`,
             public_id: uniqueName,
             resource_type: "auto"
         }

@@ -1,16 +1,20 @@
 import { Request, Response } from "express";
 import status from "http-status";
+import { Role } from "@/generated/prisma/enums";
 import { catchAsync } from "../../shared/catchAsync";
 import { sendResponse } from "../../shared/sendResponse";
 import { CategoryService } from "./category.service";
+import { IQueryParams } from "@/app/interfaces/query.interface";
 
 const getAllCategories = catchAsync(async (req: Request, res: Response) => {
-    const categories = await CategoryService.getAllCategories();
+    const result = await CategoryService.getAllCategories(req.query as IQueryParams);
+
     sendResponse(res, {
         httpStatusCode: status.OK,
         success: true,
         message: "Categories fetched successfully",
-        data: categories,
+        data: result.data,
+        meta: result.meta,
     });
 });
 
@@ -26,7 +30,10 @@ const getCategoryById = catchAsync(async (req: Request, res: Response) => {
 });
 
 const createCategory = catchAsync(async (req: Request, res: Response) => {
-    const payload = req.body;
+    const payload = {
+        ...req.body,
+        icon: req.file?.path
+    };
     const category = await CategoryService.createCategory(payload);
     sendResponse(res, {
         httpStatusCode: status.CREATED,
@@ -38,7 +45,10 @@ const createCategory = catchAsync(async (req: Request, res: Response) => {
 
 const updateCategory = catchAsync(async (req: Request, res: Response) => {
     const id = String(req.params.id);
-    const payload = req.body;
+    const payload = {
+        ...req.body,
+        icon: req.file?.path
+    };
     const updated = await CategoryService.updateCategory(id, payload);
     sendResponse(res, {
         httpStatusCode: status.OK,
@@ -50,12 +60,20 @@ const updateCategory = catchAsync(async (req: Request, res: Response) => {
 
 const deleteCategory = catchAsync(async (req: Request, res: Response) => {
     const id = String(req.params.id);
-    const result = await CategoryService.deleteCategory(id);
+    const userRole = req.user?.role;
+    const isPermanent = req.query?.permanent === 'true';
+
+    let result;
+    if (isPermanent && (userRole === Role.ADMIN || userRole === Role.SUPER_ADMIN)) {
+        result = await CategoryService.deleteCategoryPermanently(id);
+    } else {
+        result = await CategoryService.deleteCategory(id);
+    }
+
     sendResponse(res, {
         httpStatusCode: status.OK,
         success: true,
-        message: "Category deleted successfully",
-        data: result,
+        message: result.message,
     });
 });
 

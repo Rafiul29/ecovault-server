@@ -3,20 +3,39 @@ import AppError from "../../errorHelpers/AppError";
 import { prisma } from "../../lib/prisma";
 import { ICreateCategoryPayload, IUpdateCategoryPayload } from "./category.interface";
 import { normalizeSlug } from "../../utils/slug";
+import { QueryBuilder } from "../../utils/QueryBuilder";
+import { Category } from "../../../generated/prisma/client";
+import { categoryFilterableFields, categoryIncludeConfig, categorySearchableFields } from "./category.constant";
+import { IQueryParams } from "../../interfaces/query.interface";
+import { deleteFileFromCloudinary } from "@/app/config/cloudinary.config";
 
-const getAllCategories = async () => {
-    const categories = await prisma.category.findMany({
-        orderBy: { createdAt: "desc" }
-    });
-    return categories;
+const getAllCategories = async (query: IQueryParams) => {
+    const categoryQuery = new QueryBuilder<Category>(
+        prisma.category,
+        query,
+        {
+            searchableFields: categorySearchableFields,
+            filterableFields: categoryFilterableFields,
+        }
+    )
+        .where({ isDeleted: false })
+        .search()
+        .filter()
+        .paginate()
+        .sort()
+        .fields()
+        .dynamicInclude(categoryIncludeConfig);
+
+    const result = await categoryQuery.execute();
+    return result;
 };
 
-const getCategoryById = async (id: string) => {
+const getCategoryById = async (id: string, includeDeleted = false) => {
     const category = await prisma.category.findUnique({
         where: { id },
     });
 
-    if (!category) {
+    if (!category || (!includeDeleted && category.isDeleted)) {
         throw new AppError(httpStatus.NOT_FOUND, "Category not found");
     }
 
@@ -104,7 +123,15 @@ const updateCategory = async (id: string, payload: IUpdateCategoryPayload) => {
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
-    if (icon !== undefined) updateData.icon = icon;
+    
+    // Manage icon update
+    if (icon !== undefined) {
+        if (category.icon && category.icon !== icon) {
+            await deleteFileFromCloudinary(category.icon);
+        }
+        updateData.icon = icon;
+    }
+
     if (color !== undefined) updateData.color = color;
     if (isActive !== undefined) updateData.isActive = isActive;
 
@@ -139,17 +166,39 @@ const deleteCategory = async (id: string) => {
         throw new AppError(httpStatus.NOT_FOUND, "Category not found");
     }
 
-    // Check if category is being used in any ideas
+    // Soft delete
+    await prisma.category.update({
+        where: { id },
+        data: {
+            isDeleted: true,
+            deletedAt: new Date(),
+        },
+    });
+    
+    return { message: "Category soft deleted successfully" };
+};
+
+const deleteCategoryPermanently = async (id: string) => {
+    const category = await prisma.category.findUnique({ where: { id } });
+    if (!category) {
+        throw new AppError(httpStatus.NOT_FOUND, "Category not found");
+    }
+
+    // Check if category is being used
     const ideaCategoryCount = await prisma.ideaCategory.count({
         where: { categoryId: id },
     });
 
     if (ideaCategoryCount > 0) {
-        throw new AppError(httpStatus.BAD_REQUEST, "Cannot delete category that is associated with existing ideas");
+        throw new AppError(httpStatus.BAD_REQUEST, "Cannot permanently delete category associated with ideas");
+    }
+
+    if (category.icon) {
+        await deleteFileFromCloudinary(category.icon);
     }
 
     await prisma.category.delete({ where: { id } });
-    return { message: "Category deleted successfully" };
+    return { message: "Category permanently deleted from system" };
 };
 
 export const CategoryService = {
@@ -158,4 +207,5 @@ export const CategoryService = {
     createCategory,
     updateCategory,
     deleteCategory,
+    deleteCategoryPermanently,
 };

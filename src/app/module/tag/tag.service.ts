@@ -3,12 +3,29 @@ import AppError from "../../errorHelpers/AppError";
 import { prisma } from "../../lib/prisma";
 import { ICreateTagPayload, IUpdateTagPayload } from "./tag.interface";
 import { normalizeSlug } from "../../utils/slug";
+import { QueryBuilder } from "../../utils/QueryBuilder";
+import { Tag } from "../../../generated/prisma/client";
+import { tagFilterableFields, tagIncludeConfig, tagSearchableFields } from "./tag.constant";
+import { IQueryParams } from "../../interfaces/query.interface";
 
-const getAllTags = async () => {
-    const tags = await prisma.tag.findMany({
-        orderBy: { createdAt: "desc" },
-    });
-    return tags;
+const getAllTags = async (query: IQueryParams) => {
+    const tagQuery = new QueryBuilder<Tag>(
+        prisma.tag,
+        query,
+        {
+            searchableFields: tagSearchableFields,
+            filterableFields: tagFilterableFields,
+        }
+    )
+        .search()
+        .filter()
+        .paginate()
+        .sort()
+        .fields()
+        .dynamicInclude(tagIncludeConfig);
+
+    const result = await tagQuery.execute();
+    return result;
 };
 
 const getTagById = async (id: string) => {
@@ -131,17 +148,35 @@ const deleteTag = async (id: string) => {
         throw new AppError(httpStatus.NOT_FOUND, "Tag not found");
     }
 
-    // Check if tag is being used in any ideas
+    // Soft delete
+    await prisma.tag.update({
+        where: { id },
+        data: {
+            isDeleted: true,
+            deletedAt: new Date(),
+        },
+    });
+    
+    return { message: "Tag soft deleted successfully" };
+};
+
+const deleteTagPermanently = async (id: string) => {
+    const tag = await prisma.tag.findUnique({ where: { id } });
+    if (!tag) {
+        throw new AppError(httpStatus.NOT_FOUND, "Tag not found");
+    }
+
+    // Check if tag is being used
     const ideaTagCount = await prisma.ideaTag.count({
         where: { tagId: id },
     });
 
     if (ideaTagCount > 0) {
-        throw new AppError(httpStatus.BAD_REQUEST, "Cannot delete tag that is associated with existing ideas");
+        throw new AppError(httpStatus.BAD_REQUEST, "Cannot permanently delete tag associated with ideas");
     }
 
     await prisma.tag.delete({ where: { id } });
-    return { message: "Tag deleted successfully" };
+    return { message: "Tag permanently deleted from system" };
 };
 
 export const TagService = {
@@ -150,4 +185,5 @@ export const TagService = {
     createTag,
     updateTag,
     deleteTag,
+    deleteTagPermanently,
 };

@@ -6,6 +6,7 @@ import { createIdeaZodSchema, updateIdeaZodSchema } from "./idea.validator";
 import { validateRequest } from "../../middleware/validateRequest";
 import { catchAsync } from "../../shared/catchAsync";
 import { sendResponse } from "../../shared/sendResponse";
+import { Role } from "@/generated/prisma/enums";
 import { IQueryParams } from "@/app/interfaces/query.interface";
 
 const getAllIdeas = catchAsync(async (req: Request, res: Response) => {
@@ -42,41 +43,61 @@ const getIdeaById = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
-const createIdea = [
-    validateRequest(createIdeaZodSchema),
-    catchAsync(async (req: Request, res: Response) => {
-        const payload: ICreateIdeaPayload = req.body;
-        const authorId = req.user?.userId;
-        const idea = await IdeaService.createIdea(payload, authorId);
-        sendResponse(res, {
-            httpStatusCode: httpStatus.CREATED,
-            success: true,
-            message: "Idea created successfully",
-            data: idea,
-        });
-    }),
-];
+const createIdea = catchAsync(async (req: Request, res: Response) => {
+    const payload = {
+        ...req.body,
+        images: (req.files as any[])?.map((file: any) => file.path) || []
+    };
 
-const updateIdea = [
-    validateRequest(updateIdeaZodSchema),
-    catchAsync(async (req: Request, res: Response) => {
-        const id = String(req.params.id);
-        const payload: IUpdateIdeaPayload = req.body;
-        const authorId = req.user?.userId;
-        const idea = await IdeaService.updateIdea(id, payload, authorId);
-        sendResponse(res, {
-            httpStatusCode: httpStatus.OK,
-            success: true,
-            message: "Idea updated successfully",
-            data: idea,
-        });
-    }),
-];
+    const authorId = req.user?.userId;
+    const idea = await IdeaService.createIdea(payload, authorId);
+    sendResponse(res, {
+        httpStatusCode: httpStatus.CREATED,
+        success: true,
+        message: "Idea created successfully",
+        data: idea,
+    });
+});
+
+const updateIdea = catchAsync(async (req: Request, res: Response) => {
+    const id = String(req.params.id);
+    const payload = {
+        ...req.body,
+    };
+
+    if (req.files && (req.files as any[]).length > 0) {
+        payload.images = (req.files as any[]).map((file: any) => file.path);
+    }
+
+    const authorId = req.user?.userId;
+    const idea = await IdeaService.updateIdea(id, payload, authorId);
+    sendResponse(res, {
+        httpStatusCode: httpStatus.OK,
+        success: true,
+        message: "Idea updated successfully",
+        data: idea,
+    });
+});
 
 const deleteIdea = catchAsync(async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const authorId = req.user?.userId;
-    const result = await IdeaService.deleteIdea(id, authorId);
+    const userRole = req.user?.role;
+    const isPermanent = req.query?.permanent === 'true';
+
+    let result;
+    if (isPermanent && (userRole === Role.ADMIN || userRole === Role.SUPER_ADMIN)) {
+        result = await IdeaService.deleteIdeaPermanently(id);
+    } else {
+        // If an admin/super admin is doing a soft delete, we might want to bypass authorId check
+        // Or we just pass a flag
+        const effectiveAuthorId = (userRole === Role.ADMIN || userRole === Role.SUPER_ADMIN) 
+            ? "SUPER_ADMIN_BYPASS" 
+            : authorId;
+            
+        result = await IdeaService.deleteIdea(id, effectiveAuthorId);
+    }
+
     sendResponse(res, {
         httpStatusCode: httpStatus.OK,
         success: true,

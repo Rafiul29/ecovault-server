@@ -6,12 +6,14 @@ import { normalizeSlug } from "../../utils/slug";
 import { QueryBuilder } from "../../utils/QueryBuilder";
 import { ideaFilterableFields, ideaIncludeConfig, ideaSearchableFields } from "./idea.constant";
 import { IQueryParams } from "../../interfaces/query.interface";
+import { deleteFileFromCloudinary } from "@/app/config/cloudinary.config";
 
 const getAllIdeas = async (queryParams: IQueryParams) => {
     const ideaQuery = new QueryBuilder(prisma.idea, queryParams, {
         searchableFields: ideaSearchableFields,
         filterableFields: ideaFilterableFields,
     })
+        .where({ isDeleted: false })
         .search()
         .filter()
         .paginate()
@@ -36,7 +38,7 @@ const getMyIdeas = async (authorId: string, queryParams: IQueryParams) => {
     return await ideaQuery.execute();
 };
 
-const getIdeaById = async (id: string) => {
+const getIdeaById = async (id: string, includeDeleted = false) => {
     const idea = await prisma.idea.findUnique({
         where: { id },
         include: {
@@ -48,7 +50,7 @@ const getIdeaById = async (id: string) => {
         },
     });
 
-    if (!idea) {
+    if (!idea || (!includeDeleted && idea.isDeleted)) {
         throw new AppError(httpStatus.NOT_FOUND, "Idea not found");
     }
 
@@ -188,7 +190,19 @@ const updateIdea = async (id: string, payload: IUpdateIdeaPayload, authorId: str
     if (description) updateData.description = description;
     if (problemStatement) updateData.problemStatement = problemStatement;
     if (proposedSolution) updateData.proposedSolution = proposedSolution;
-    if (images) updateData.images = images;
+    
+    // Manage images update
+    if (images !== undefined) {
+        const currentImages = idea.images || [];
+        const removedImages = currentImages.filter(img => !images.includes(img));
+        
+        // Remove images from Cloudinary if specifically replaced
+        if (removedImages.length > 0) {
+            await Promise.all(removedImages.map(url => deleteFileFromCloudinary(url)));
+        }
+        updateData.images = images;
+    }
+
     if (status) updateData.status = status as any;
     if (isPaid !== undefined) updateData.isPaid = isPaid;
     if (price !== undefined) updateData.price = price;
@@ -244,12 +258,37 @@ const deleteIdea = async (id: string, authorId: string) => {
         throw new AppError(httpStatus.NOT_FOUND, "Idea not found");
     }
 
-    if (idea.authorId !== authorId) {
+    if (authorId !== "SUPER_ADMIN_BYPASS" && idea.authorId !== authorId) {
         throw new AppError(httpStatus.FORBIDDEN, "You can only delete your own ideas");
     }
 
+    // Soft delete idea
+    await prisma.idea.update({
+        where: { id },
+        data: {
+            isDeleted: true,
+            deletedAt: new Date(),
+        },
+    });
+    
+    return { message: "Idea soft deleted successfully" };
+};
+
+const deleteIdeaPermanently = async (id: string) => {
+    const idea = await prisma.idea.findUnique({ where: { id } });
+    if (!idea) {
+        throw new AppError(httpStatus.NOT_FOUND, "Idea not found");
+    }
+
+    // Delete associated images from Cloudinary permanently
+    if (idea.images && idea.images.length > 0) {
+        await Promise.all(idea.images.map(url => deleteFileFromCloudinary(url)));
+    }
+
+    // Execute permanent deletion from database
     await prisma.idea.delete({ where: { id } });
-    return { message: "Idea deleted successfully" };
+    
+    return { message: "Idea permanently deleted from system" };
 };
 
 export const IdeaService = {
@@ -259,4 +298,5 @@ export const IdeaService = {
     createIdea,
     updateIdea,
     deleteIdea,
+    deleteIdeaPermanently,
 };

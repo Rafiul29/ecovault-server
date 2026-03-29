@@ -1,16 +1,19 @@
 import { Request, Response } from "express";
 import status from "http-status";
+import { Role } from "@/generated/prisma/enums";
 import { catchAsync } from "../../shared/catchAsync";
 import { sendResponse } from "../../shared/sendResponse";
 import { TagService } from "./tag.service";
+import { IQueryParams } from "@/app/interfaces/query.interface";
 
 const getAllTags = catchAsync(async (req: Request, res: Response) => {
-    const tags = await TagService.getAllTags();
+    const result = await TagService.getAllTags(req.query as IQueryParams);
     sendResponse(res, {
         httpStatusCode: status.OK,
         success: true,
         message: "Tags fetched successfully",
-        data: tags,
+        data: result.data,
+        meta: result.meta,
     });
 });
 
@@ -50,12 +53,20 @@ const updateTag = catchAsync(async (req: Request, res: Response) => {
 
 const deleteTag = catchAsync(async (req: Request, res: Response) => {
     const id = String(req.params.id);
-    const result = await TagService.deleteTag(id);
+    const userRole = req.user?.role;
+    const isPermanent = req.query?.permanent === 'true';
+
+    let result;
+    if (isPermanent && (userRole === Role.ADMIN || userRole === Role.SUPER_ADMIN)) {
+        result = await TagService.deleteTagPermanently(id);
+    } else {
+        result = await TagService.deleteTag(id);
+    }
+
     sendResponse(res, {
         httpStatusCode: status.OK,
         success: true,
-        message: "Tag deleted successfully",
-        data: result,
+        message: result.message,
     });
 });
 
