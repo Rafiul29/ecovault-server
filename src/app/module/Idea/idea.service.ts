@@ -13,12 +13,11 @@ const getAllIdeas = async (queryParams: IQueryParams) => {
         searchableFields: ideaSearchableFields,
         filterableFields: ideaFilterableFields,
     })
-        .where({ isDeleted: false })
         .search()
         .filter()
         .paginate()
         .sort()
-        .dynamicInclude(ideaIncludeConfig);
+        .dynamicInclude(ideaIncludeConfig, Object.keys(ideaIncludeConfig));
 
     return await ideaQuery.execute();
 };
@@ -33,20 +32,72 @@ const getMyIdeas = async (authorId: string, queryParams: IQueryParams) => {
         .filter()
         .paginate()
         .sort()
-        .dynamicInclude(ideaIncludeConfig);
+        .dynamicInclude(ideaIncludeConfig, Object.keys(ideaIncludeConfig));
 
     return await ideaQuery.execute();
 };
 
 const getIdeaById = async (id: string, includeDeleted = false) => {
+    // Increment view count when fetching a single idea
+    await prisma.idea.update({
+        where: { id },
+        data: {
+            viewCount: { increment: 1 },
+        },
+    });
+
     const idea = await prisma.idea.findUnique({
         where: { id },
         include: {
-            categories: { include: { category: true } },
-            tags: { include: { tag: true } },
-            author: { select: { id: true, name: true, email: true } },
+            categories: {
+                include: {
+                    category: {
+                        select: {
+                            id: true,
+                            name: true,
+                            slug: true,
+                            icon: true,
+                            color: true,
+                        }
+                    }
+                }
+            },
+            tags: {
+                include: {
+                    tag: {
+                        select: {
+                            id: true,
+                            name: true,
+                            slug: true,
+                        }
+                    }
+                }
+            },
+            author: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    image: true,
+                    _count: {
+                        select: {
+                            followers: true,
+                            following: true,
+                        },
+                    },
+                },
+            },
             comments: true,
             votes: true,
+            attachments: true,
+            _count: {
+                select: {
+                    comments: true,
+                    votes: true,
+                    purchases: true,
+                    watchlists: true,
+                }
+            }
         },
     });
 
@@ -190,12 +241,12 @@ const updateIdea = async (id: string, payload: IUpdateIdeaPayload, authorId: str
     if (description) updateData.description = description;
     if (problemStatement) updateData.problemStatement = problemStatement;
     if (proposedSolution) updateData.proposedSolution = proposedSolution;
-    
+
     // Manage images update
     if (images !== undefined) {
         const currentImages = idea.images || [];
         const removedImages = currentImages.filter(img => !images.includes(img));
-        
+
         // Remove images from Cloudinary if specifically replaced
         if (removedImages.length > 0) {
             await Promise.all(removedImages.map(url => deleteFileFromCloudinary(url)));
@@ -207,6 +258,7 @@ const updateIdea = async (id: string, payload: IUpdateIdeaPayload, authorId: str
     if (isPaid !== undefined) updateData.isPaid = isPaid;
     if (price !== undefined) updateData.price = price;
     if (isFeatured !== undefined) updateData.isFeatured = isFeatured;
+
     if (finalSlug) updateData.slug = finalSlug;
 
     await prisma.$transaction(async (tx) => {
@@ -270,7 +322,7 @@ const deleteIdea = async (id: string, authorId: string) => {
             deletedAt: new Date(),
         },
     });
-    
+
     return { message: "Idea soft deleted successfully" };
 };
 
@@ -287,7 +339,7 @@ const deleteIdeaPermanently = async (id: string) => {
 
     // Execute permanent deletion from database
     await prisma.idea.delete({ where: { id } });
-    
+
     return { message: "Idea permanently deleted from system" };
 };
 

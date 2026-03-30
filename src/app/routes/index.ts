@@ -13,6 +13,8 @@ import { IdeaReviewRoutes } from "../module/ideaReview/ideaReview.route";
 import { ModeratorRoutes } from "../module/moderator/moderator.route";
 import { PaymentRoutes } from "../module/payment/payment.route";
 import { SubscriptionRoutes } from "../module/subscription/subscription.route";
+import { MemberRoutes } from "../module/member/member.route";
+import { StatsRoutes } from "../module/stats/stats.route";
 
 const router = Router();
 
@@ -30,5 +32,7 @@ router.use("/idea-reviews", IdeaReviewRoutes);
 router.use("/moderators", ModeratorRoutes);
 router.use("/payments", PaymentRoutes);
 router.use("/subscriptions", SubscriptionRoutes);
+router.use("/members", MemberRoutes);
+router.use("/stats", StatsRoutes);
 
 export const IndexRoutes:Router = router;

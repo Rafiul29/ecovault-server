@@ -1,4 +1,4 @@
-# **EcoVault Assignment Requirements**
+# **EcoVault Requirements**
 
 ## **Project Overview**
 
@@ -80,7 +80,7 @@ Develop an online community portal where community members can share sustainably
 
 **Navigation Bar:**
 
-*       *   Home
+*   *   Home
     *   **Ideas:** All Listed Sustainability Ideas
     *   Dashboard (Will redirect to a specific user dashboard based on their role)
     *   About Us

@@ -19,6 +19,7 @@ export const ideaFilterableFields = [
     'tags.tag.name',
     'createdAt',
     'updatedAt',
+    'isDeleted',
 ]
 
 export const ideaIncludeConfig: Partial<Record<keyof Prisma.IdeaInclude, Prisma.IdeaInclude[keyof Prisma.IdeaInclude]>> = {
@@ -27,16 +28,31 @@ export const ideaIncludeConfig: Partial<Record<keyof Prisma.IdeaInclude, Prisma.
             id: true,
             name: true,
             email: true,
+            image: true,
         }
     },
     categories: {
         include: {
-            category: true
+            category: {
+                select: {
+                    id: true,
+                    name: true,
+                    slug: true,
+                    icon: true,
+                    color: true,
+                }
+            }
         }
     },
     tags: {
         include: {
-            tag: true
+            tag: {
+                select: {
+                    id: true,
+                    name: true,
+                    slug: true,
+                }
+            }
         }
     },
     attachments: true,

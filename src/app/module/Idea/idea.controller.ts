@@ -1,9 +1,6 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
 import { IdeaService } from "./idea.service";
-import { ICreateIdeaPayload, IUpdateIdeaPayload } from "./idea.interface";
-import { createIdeaZodSchema, updateIdeaZodSchema } from "./idea.validator";
-import { validateRequest } from "../../middleware/validateRequest";
 import { catchAsync } from "../../shared/catchAsync";
 import { sendResponse } from "../../shared/sendResponse";
 import { Role } from "@/generated/prisma/enums";
@@ -91,10 +88,10 @@ const deleteIdea = catchAsync(async (req: Request, res: Response) => {
     } else {
         // If an admin/super admin is doing a soft delete, we might want to bypass authorId check
         // Or we just pass a flag
-        const effectiveAuthorId = (userRole === Role.ADMIN || userRole === Role.SUPER_ADMIN) 
-            ? "SUPER_ADMIN_BYPASS" 
+        const effectiveAuthorId = (userRole === Role.ADMIN || userRole === Role.SUPER_ADMIN)
+            ? "SUPER_ADMIN_BYPASS"
             : authorId;
-            
+
         result = await IdeaService.deleteIdea(id, effectiveAuthorId);
     }
 

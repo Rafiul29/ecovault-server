@@ -13,6 +13,17 @@ import { IChangePasswordPayload, ILoginUserPayload, IRegisterPayload } from "./a
 
 const registerUser = async (payload: IRegisterPayload & { isModerator?: boolean; profileData?: any }) => {
     const { name, email, password, isModerator, profileData } = payload;
+
+    const isUserExists = await prisma.user.findUnique({
+        where: {
+            email: email,
+        },
+    });
+
+    if (isUserExists) {
+        throw new AppError(status.BAD_REQUEST, "User already exists");
+    }
+
     const data = await auth.api.signUpEmail({
         body: {
             name,
@@ -48,7 +59,7 @@ const registerUser = async (payload: IRegisterPayload & { isModerator?: boolean;
                         socialLinks: profileData?.socialLinks || null,
                         onboarded: false,
                         activityScore: 0,
-                        isActive: false, // Admin will activate after verification
+                        isActive: false,
                         assignNotes: profileData?.assignNotes || null,
                     },
                 });
@@ -58,12 +69,12 @@ const registerUser = async (payload: IRegisterPayload & { isModerator?: boolean;
             // Update user role to MODERATOR
             await prisma.user.update({
                 where: { id: data.user.id },
-                data: { role: "MODERATOR" }
+                data: { role: Role.MODERATOR }
             });
 
             const accessToken = tokenUtils.getAccessToken({
                 userId: data.user.id,
-                role: "MODERATOR",
+                role: Role.MODERATOR,
                 name: data.user.name,
                 email: data.user.email,
                 status: data.user.status,
@@ -73,7 +84,7 @@ const registerUser = async (payload: IRegisterPayload & { isModerator?: boolean;
 
             const refreshToken = tokenUtils.getRefreshToken({
                 userId: data.user.id,
-                role: "MODERATOR",
+                role: Role.MODERATOR,
                 name: data.user.name,
                 email: data.user.email,
                 status: data.user.status,
@@ -86,7 +97,7 @@ const registerUser = async (payload: IRegisterPayload & { isModerator?: boolean;
                 accessToken,
                 refreshToken,
                 moderator,
-                role: "MODERATOR"
+                role: Role.MODERATOR
             };
         } else {
 

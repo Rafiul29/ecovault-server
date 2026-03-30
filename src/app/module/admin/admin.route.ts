@@ -20,13 +20,23 @@ router.delete("/:id",
     checkAuth(Role.SUPER_ADMIN),
     AdminController.deleteAdmin);
 
-router.patch("/change-user-status", 
+router.patch("/change-user-status",
     checkAuth(Role.SUPER_ADMIN, Role.ADMIN),
-     AdminController.changeUserStatus);
+    AdminController.changeUserStatus);
 router.patch("/change-user-role",
-     checkAuth(Role.SUPER_ADMIN),
-     AdminController.changeUserRole);
+    checkAuth(Role.SUPER_ADMIN),
+    AdminController.changeUserRole);
 
+router.get("/users",
+    checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+    AdminController.getAllUsers);
 
+router.get("/users/:id",
+    checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+    AdminController.getUserById);
 
-export const AdminRoutes:Router = router;
+router.delete("/users/:id",
+    checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+    AdminController.deleteUserAccount);
+
+export const AdminRoutes: Router = router;

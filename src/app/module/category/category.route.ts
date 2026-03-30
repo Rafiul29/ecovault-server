@@ -11,8 +11,8 @@ const router = Router();
 router.get("/", CategoryController.getAllCategories);
 router.get("/:id", CategoryController.getCategoryById);
 
-router.post("/", multerUpload.single('file'), checkAuth(Role.ADMIN, Role.SUPER_ADMIN), validateRequest(createCategoryZodSchema), CategoryController.createCategory);
+router.post("/", multerUpload.single('file'), checkAuth(Role.ADMIN, Role.SUPER_ADMIN, Role.MODERATOR), validateRequest(createCategoryZodSchema), CategoryController.createCategory);
 router.patch("/:id", multerUpload.single('file'), checkAuth(Role.ADMIN, Role.SUPER_ADMIN), validateRequest(updateCategoryZodSchema), CategoryController.updateCategory);
-router.delete("/:id", checkAuth(Role.SUPER_ADMIN), CategoryController.deleteCategory);
+router.delete("/:id", checkAuth(Role.ADMIN, Role.SUPER_ADMIN), CategoryController.deleteCategory);
 
 export const CategoryRoutes = router;
