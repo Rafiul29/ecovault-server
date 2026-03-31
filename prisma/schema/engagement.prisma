@@ -10,7 +10,7 @@ model Comment {
 
   // Nested comments support
   parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
-  parentId String?@
+  parentId String?
   replies  Comment[] @relation("CommentReplies")
 
   isDeleted Boolean @default(false)

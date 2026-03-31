@@ -2,6 +2,9 @@ import httpStatus from "http-status";
 import { prisma } from "../../lib/prisma";
 import AppError from "../../errorHelpers/AppError";
 import { ICommentPayload, ICommentReactionPayload } from "./comment.interface";
+import { QueryBuilder } from "../../utils/QueryBuilder";
+import { commentFilterableFields, commentIncludeConfig, commentSearchableFields } from "./comment.constant";
+import { IQueryParams } from "../../interfaces/query.interface";
 
 const createComment = async (payload: ICommentPayload, authorId: string) => {
   const { content, ideaId, parentId } = payload;
@@ -116,10 +119,25 @@ const toggleCommentReaction = async (payload: ICommentReactionPayload, userId: s
   return { action: "added" };
 };
 
+const getAllCommentsFromDb = async (queryParams: IQueryParams) => {
+  const commentQuery = new QueryBuilder(prisma.comment, queryParams, {
+    searchableFields: commentSearchableFields,
+    filterableFields: commentFilterableFields,
+  })
+    .search()
+    .filter()
+    .paginate()
+    .sort()
+    .dynamicInclude(commentIncludeConfig, Object.keys(commentIncludeConfig));
+
+  return await commentQuery.execute();
+};
+
 export const CommentService = {
   createComment,
   getCommentsByIdea,
   updateComment,
   deleteComment,
   toggleCommentReaction,
+  getAllCommentsFromDb,
 };

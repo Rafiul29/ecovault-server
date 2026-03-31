@@ -2,11 +2,14 @@ import httpStatus from "http-status";
 import { prisma } from "../../lib/prisma";
 import AppError from "../../errorHelpers/AppError";
 import { IModeratorPayload } from "./moderator.interface";
+import { QueryBuilder } from "../../utils/QueryBuilder";
+import { IQueryParams } from "../../interfaces/query.interface";
+import { moderatorIncludeConfig } from "./moderator.constant";
 
 const getMyProfile = async (userId: string) => {
   const profile = await prisma.moderator.findUnique({
     where: { userId },
-    include: { user: { select: { email: true, role: true, status: true } } },
+    include: { user: { select: { id: true, email: true, image: true, role: true, status: true } } },
   });
 
   if (!profile) {
@@ -47,10 +50,23 @@ const updateMyProfile = async (userId: string, payload: IModeratorPayload) => {
   return result;
 };
 
-const getAllModerators = async () => {
-  return await prisma.moderator.findMany({
-    include: { user: { select: { status: true, updatedAt: true } } },
-  });
+const getAllModerators = async (queryParams: IQueryParams) => {
+  const queryBuilder = new QueryBuilder(
+    prisma.moderator,
+    queryParams,
+    {
+      searchableFields: ['name', 'user.email'],
+      filterableFields: ['isActive', 'user.status']
+    }
+  );
+
+  return await queryBuilder
+    .search()
+    .filter()
+    .paginate()
+    .sort()
+    .include(moderatorIncludeConfig)
+    .execute();
 };
 
 const toggleModeratorStatus = async (id: string) => {

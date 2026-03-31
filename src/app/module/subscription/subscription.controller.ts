@@ -86,11 +86,24 @@ const getMySubscription = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getAllSubscriptions = catchAsync(async (req: Request, res: Response) => {
+    const queryParams = req.query;
+    const result = await SubscriptionService.getAllSubscriptionsFromDb(queryParams);
+
+    sendResponse(res, {
+        httpStatusCode: status.OK,
+        success: true,
+        message: "All subscriptions retrieved successfully",
+        data: result
+    });
+});
+
 export const SubscriptionController = {
     createSubscriptionPlan,
     getAllSubscriptionPlans,
     getSubscriptionPlanById,
     updateSubscriptionPlan,
     subscribeToPlan,
-    getMySubscription
+    getMySubscription,
+    getAllSubscriptions
 };

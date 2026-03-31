@@ -62,10 +62,22 @@ const toggleCommentReaction = catchAsync(async (req: Request, res: Response) => 
   });
 });
 
+const getAllComments = catchAsync(async (req: Request, res: Response) => {
+  const queryParams = req.query;
+  const result = await CommentService.getAllCommentsFromDb(queryParams);
+  sendResponse(res, {
+    httpStatusCode: httpStatus.OK,
+    success: true,
+    message: "All comments retrieved successfully",
+    data: result,
+  });
+});
+
 export const CommentController = {
   createComment,
   getCommentsByIdea,
   updateComment,
   deleteComment,
   toggleCommentReaction,
+  getAllComments,
 };

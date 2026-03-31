@@ -71,11 +71,23 @@ const getInvoice = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getAllMembers = catchAsync(async (req: Request, res: Response) => {
+    const result = await MemberService.getAllMembers(req.query as any);
+    sendResponse(res, {
+        httpStatusCode: httpStatus.OK,
+        success: true,
+        message: "Members retrieved successfully",
+        data: result.data,
+        meta: result.meta,
+    });
+});
+
 export const MemberController = {
     getMyProfile,
     getMyPurchasedIdeas,
     getMyFollowers,
     getMyFollowing,
     getMyReviews,
-    getInvoice
+    getInvoice,
+    getAllMembers
 };

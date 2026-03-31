@@ -4,6 +4,9 @@ import status from "http-status";
 import { stripe } from "../../config/stripe.config";
 import { PaymentStatus, SubscriptionTier } from "../../../generated/prisma/enums";
 import { envVars } from "../../config/env";
+import { QueryBuilder } from "../../utils/QueryBuilder";
+import { subscriptionFilterableFields, subscriptionIncludeConfig, subscriptionSearchableFields } from "./subscription.constant";
+import { IQueryParams } from "../../interfaces/query.interface";
 
 // Plan Services
 const createSubscriptionPlan = async (payload: any) => {
@@ -151,6 +154,20 @@ const getMySubscription = async (userId: string) => {
     });
 };
 
+const getAllSubscriptionsFromDb = async (queryParams: IQueryParams) => {
+    const subscriptionQuery = new QueryBuilder(prisma.subscription, queryParams, {
+        searchableFields: subscriptionSearchableFields,
+        filterableFields: subscriptionFilterableFields,
+    })
+        .search()
+        .filter()
+        .paginate()
+        .sort()
+        .dynamicInclude(subscriptionIncludeConfig, Object.keys(subscriptionIncludeConfig));
+
+    return await subscriptionQuery.execute();
+};
+
 export const SubscriptionService = {
     createSubscriptionPlan,
     getAllSubscriptionPlans,
@@ -161,5 +178,6 @@ export const SubscriptionService = {
     subscribeViaSsl,
     subscribeViaNagad,
     subscribeViaCard,
-    getMySubscription
+    getMySubscription,
+    getAllSubscriptionsFromDb
 };

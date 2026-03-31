@@ -389,7 +389,8 @@ const getMyPurchases = async (userId: string) => {
                 select: {
                     id: true,
                     name: true,
-                    email: true
+                    email: true,
+                      image: true
                 }
             }
         },
@@ -408,7 +409,8 @@ const getAllPurchases = async () => {
                 select: {
                     id: true,
                     name: true,
-                    email: true
+                    email: true,
+                    image: true
                 }
             }
         },

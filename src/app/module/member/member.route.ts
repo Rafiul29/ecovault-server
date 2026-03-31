@@ -15,4 +15,7 @@ router.get("/following", MemberController.getMyFollowing);
 router.get("/reviews", MemberController.getMyReviews);
 router.get("/invoice/:paymentId", MemberController.getInvoice);
 
+// Admin-only routes
+router.get("/", checkAuth(Role.ADMIN, Role.SUPER_ADMIN), MemberController.getAllMembers);
+
 export const MemberRoutes = router;

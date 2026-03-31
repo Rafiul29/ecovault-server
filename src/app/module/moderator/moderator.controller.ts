@@ -27,12 +27,13 @@ const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getAllModerators = catchAsync(async (req: Request, res: Response) => {
-  const moderators = await ModeratorService.getAllModerators();
+  const result = await ModeratorService.getAllModerators(req.query as any);
   sendResponse(res, {
     httpStatusCode: httpStatus.OK,
     success: true,
-    message: "All moderators retrieved successfully",
-    data: moderators,
+    message: "Moderators retrieved successfully",
+    data: result.data,
+    meta: result.meta,
   });
 });
 

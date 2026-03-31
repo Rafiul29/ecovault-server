@@ -2,6 +2,9 @@ import httpStatus from "http-status";
 import AppError from "../../errorHelpers/AppError";
 import { prisma } from "../../lib/prisma";
 import { memberIncludeConfig } from "./member.constant";
+import { QueryBuilder } from "../../utils/QueryBuilder";
+import { IQueryParams } from "../../interfaces/query.interface";
+import { Role } from "../../../generated/prisma/enums";
 
 const getMyProfile = async (userId: string) => {
     const user = await prisma.user.findUnique({
@@ -22,8 +25,8 @@ const getMyPurchasedIdeas = async (userId: string) => {
         include: {
             idea: {
                 include: {
-                    categories: { 
-                        include: { 
+                    categories: {
+                        include: {
                             category: {
                                 select: {
                                     id: true,
@@ -32,19 +35,19 @@ const getMyPurchasedIdeas = async (userId: string) => {
                                     icon: true,
                                     color: true
                                 }
-                            } 
-                        } 
+                            }
+                        }
                     },
-                    tags: { 
-                        include: { 
+                    tags: {
+                        include: {
                             tag: {
                                 select: {
                                     id: true,
                                     name: true,
                                     slug: true
                                 }
-                            } 
-                        } 
+                            }
+                        }
                     },
                     author: {
                         select: {
@@ -139,11 +142,35 @@ const getInvoice = async (paymentId: string, userId: string) => {
     return payment;
 };
 
+const getAllMembers = async (queryParams: IQueryParams) => {
+    const queryBuilder = new QueryBuilder(
+        prisma.user,
+
+        queryParams,
+        {
+            searchableFields: ['name', 'email'],
+            filterableFields: ['role', 'status', 'isDeleted']
+        }
+    );
+
+    return await queryBuilder
+        .search()
+        .filter()
+        .paginate()
+        .sort()
+        .include(memberIncludeConfig)
+        .where({
+            role: Role.MEMBER  // Only get users with MEMBER role
+        })
+        .execute();
+};
+
 export const MemberService = {
     getMyProfile,
     getMyPurchasedIdeas,
     getMyFollowers,
     getMyFollowing,
     getMyReviews,
-    getInvoice
+    getInvoice,
+    getAllMembers
 };

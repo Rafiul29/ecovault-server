@@ -35,15 +35,22 @@ router.patch(
 // Subscription routes (User)
 router.post(
   '/subscribe',
-  checkAuth(Role.MEMBER, Role.MODERATOR, Role.ADMIN, Role.SUPER_ADMIN),
+  checkAuth(Role.MEMBER, Role.MODERATOR),
   validateRequest(SubscriptionValidator.subscribeToPlanSchema),
   SubscriptionController.subscribeToPlan
 );
 
 router.get(
   '/my-subscription',
-  checkAuth(Role.MEMBER, Role.MODERATOR, Role.ADMIN, Role.SUPER_ADMIN),
+  checkAuth(Role.MEMBER, Role.MODERATOR),
   SubscriptionController.getMySubscription
+);
+
+
+router.get(
+  '/all-subscription',
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  SubscriptionController.getAllSubscriptions
 );
 
 export const SubscriptionRoutes: Router = router;
