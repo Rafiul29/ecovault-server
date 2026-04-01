@@ -6,6 +6,7 @@ export const ideaSearchableFields = [
     'description',
     'problemStatement',
     'proposedSolution',
+    'author.name',
 ]
 
 export const ideaFilterableFields = [
@@ -20,6 +21,10 @@ export const ideaFilterableFields = [
     'createdAt',
     'updatedAt',
     'isDeleted',
+    'viewCount',
+    'upvoteCount',
+    'downvoteCount',
+    'trendingScore',
 ]
 
 export const ideaIncludeConfig: Partial<Record<keyof Prisma.IdeaInclude, Prisma.IdeaInclude[keyof Prisma.IdeaInclude]>> = {

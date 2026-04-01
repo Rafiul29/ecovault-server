@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const watchlistZodSchema = z.object({
-  body: z.object({
-    ideaId: z.string().min(1, "Idea ID is required"),
-  }),
+
+  ideaId: z.string().min(1, "Idea ID is required"),
+
 });

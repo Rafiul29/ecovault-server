@@ -15,6 +15,7 @@ enum IdeaStatus {
   DRAFT
   UNDER_REVIEW
   APPROVED
+  PUBLISHED
   REJECTED
 }
 

@@ -1,12 +1,8 @@
 export const subscriptionSearchableFields = [];
+export const subscriptionFilterableFields = ["userId", "tier", "isActive", "subscriptionPlanId", "paymentId"];
 
-export const subscriptionFilterableFields = [
-    "userId",
-    "tier",
-    "isActive",
-    "subscriptionPlanId",
-    "paymentId",
-];
+export const subscriptionPlanSearchableFields = ["name", "description"];
+export const subscriptionPlanFilterableFields = ["isActive", "isPopular", "tier"];
 
 export const subscriptionIncludeConfig = {
     user: {

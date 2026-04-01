@@ -343,6 +343,48 @@ const deleteIdeaPermanently = async (id: string) => {
     return { message: "Idea permanently deleted from system" };
 };
 
+const getSoldIdeas = async (userId?: string) => {
+    return await prisma.ideaPurchase.findMany({
+        ...(userId ? { where: { userId } } : {}),
+        include: {
+            idea: true,
+            user: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    image: true
+                }
+            }
+        },
+        orderBy: {
+            purchasedAt: "desc"
+        }
+    });
+};
+
+const getMyPurchases = async (userId: string) => {
+    return await prisma.ideaPurchase.findMany({
+        where: {
+            userId: userId
+        },
+        include: {
+            idea: true,
+            user: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    image: true
+                }
+            }
+        },
+        orderBy: {
+            purchasedAt: "desc"
+        }
+    });
+};
+
 export const IdeaService = {
     getAllIdeas,
     getMyIdeas,
@@ -351,4 +393,6 @@ export const IdeaService = {
     updateIdea,
     deleteIdea,
     deleteIdeaPermanently,
+    getSoldIdeas,
+    getMyPurchases,
 };

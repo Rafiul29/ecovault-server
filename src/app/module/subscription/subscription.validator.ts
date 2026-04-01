@@ -7,6 +7,10 @@ const createSubscriptionPlanSchema = z.object({
     tier: z.nativeEnum(SubscriptionTier, { message: 'Tier is required' }),
     price: z.number({ message: 'Price is required' }).min(0),
     durationDays: z.number().int().positive().optional(),
+    features: z.array(z.string()).optional(),
+    order: z.number().int().optional(),
+    isPopular: z.boolean().optional(),
+    buttonText: z.string().optional(),
 });
 
 const updateSubscriptionPlanSchema = z.object({
@@ -15,6 +19,10 @@ const updateSubscriptionPlanSchema = z.object({
     tier: z.nativeEnum(SubscriptionTier).optional(),
     price: z.number().min(0).optional(),
     durationDays: z.number().int().positive().optional(),
+    features: z.array(z.string()).optional(),
+    order: z.number().int().optional(),
+    isPopular: z.boolean().optional(),
+    buttonText: z.string().optional(),
     isActive: z.boolean().optional(),
 });
 

@@ -16,13 +16,14 @@ const createSubscriptionPlan = catchAsync(async (req: Request, res: Response) =>
 });
 
 const getAllSubscriptionPlans = catchAsync(async (req: Request, res: Response) => {
-    const result = await SubscriptionService.getAllSubscriptionPlans();
+    const result = await SubscriptionService.getAllSubscriptionPlans(req.query);
 
     sendResponse(res, {
         httpStatusCode: status.OK,
         success: true,
         message: "Subscription plans retrieved successfully",
-        data: result
+        data: result.data,
+        meta: result.meta
     });
 });
 
@@ -44,6 +45,17 @@ const updateSubscriptionPlan = catchAsync(async (req: Request, res: Response) =>
         httpStatusCode: status.OK,
         success: true,
         message: "Subscription plan updated successfully",
+        data: result
+    });
+});
+
+const deleteSubscriptionPlan = catchAsync(async (req: Request, res: Response) => {
+    const result = await SubscriptionService.deleteSubscriptionPlan(req.params.id as string);
+
+    sendResponse(res, {
+        httpStatusCode: status.OK,
+        success: true,
+        message: "Subscription plan deleted successfully",
         data: result
     });
 });
@@ -103,6 +115,7 @@ export const SubscriptionController = {
     getAllSubscriptionPlans,
     getSubscriptionPlanById,
     updateSubscriptionPlan,
+    deleteSubscriptionPlan,
     subscribeToPlan,
     getMySubscription,
     getAllSubscriptions

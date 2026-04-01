@@ -32,6 +32,12 @@ router.patch(
   SubscriptionController.updateSubscriptionPlan
 );
 
+router.delete(
+  '/plans/:id',
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  SubscriptionController.deleteSubscriptionPlan
+);
+
 // Subscription routes (User)
 router.post(
   '/subscribe',

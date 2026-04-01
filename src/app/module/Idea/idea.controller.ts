@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
 import { IdeaService } from "./idea.service";
+import { PaymentService } from "../payment/payment.service";
 import { catchAsync } from "../../shared/catchAsync";
 import { sendResponse } from "../../shared/sendResponse";
 import { Role } from "@/generated/prisma/enums";
@@ -102,6 +103,56 @@ const deleteIdea = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getSoldIdeas = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.query.userId as string | undefined;
+    const result = await IdeaService.getSoldIdeas(userId);
+    sendResponse(res, {
+        httpStatusCode: httpStatus.OK,
+        success: true,
+        message: "Sold ideas retrieved successfully",
+        data: result,
+    });
+});
+
+const getMyPurchases = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user.userId;
+    const result = await IdeaService.getMyPurchases(userId);
+
+    sendResponse(res, {
+        httpStatusCode: httpStatus.OK,
+        success: true,
+        message: "My purchases retrieved successfully",
+        data: result,
+    });
+});
+
+
+const purchaseIdea = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user.userId;
+    const { ideaId, paymentMethod } = req.body;
+    const method = paymentMethod || 'STRIPE';
+
+    let result;
+    if (method === 'BKASH') {
+        result = await PaymentService.createBkashSession(userId, ideaId);
+    } else if (method === 'SSLECOMMERCE') {
+        result = await PaymentService.createSslSession(userId, ideaId);
+    } else if (method === 'NAGAD') {
+        result = await PaymentService.createNagadSession(userId, ideaId);
+    } else if (method === 'CARD') {
+        result = await PaymentService.createCardSession(userId, ideaId);
+    } else {
+        result = await PaymentService.createStripeSession(userId, ideaId);
+    }
+
+    sendResponse(res, {
+        httpStatusCode: httpStatus.OK,
+        success: true,
+        message: "Checkout session created successfully",
+        data: result
+    });
+});
+
 export const IdeaController = {
     getAllIdeas,
     getMyIdeas,
@@ -109,4 +160,7 @@ export const IdeaController = {
     createIdea,
     updateIdea,
     deleteIdea,
+    getSoldIdeas,
+    purchaseIdea,
+    getMyPurchases,
 };

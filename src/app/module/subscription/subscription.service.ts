@@ -5,7 +5,13 @@ import { stripe } from "../../config/stripe.config";
 import { PaymentStatus, SubscriptionTier } from "../../../generated/prisma/enums";
 import { envVars } from "../../config/env";
 import { QueryBuilder } from "../../utils/QueryBuilder";
-import { subscriptionFilterableFields, subscriptionIncludeConfig, subscriptionSearchableFields } from "./subscription.constant";
+import {
+    subscriptionFilterableFields,
+    subscriptionIncludeConfig,
+    subscriptionSearchableFields,
+    subscriptionPlanFilterableFields,
+    subscriptionPlanSearchableFields,
+} from "./subscription.constant";
 import { IQueryParams } from "../../interfaces/query.interface";
 
 // Plan Services
@@ -15,11 +21,23 @@ const createSubscriptionPlan = async (payload: any) => {
     });
 };
 
-const getAllSubscriptionPlans = async () => {
-    return await prisma.subscriptionPlan.findMany({
-        where: { isActive: true },
-        orderBy: { price: "asc" }
-    });
+const getAllSubscriptionPlans = async (queryParams: IQueryParams) => {
+    const modifiedQueryParams: IQueryParams = {
+        sortBy: "order",
+        sortOrder: "asc",
+        ...queryParams
+    };
+
+    const subscriptionPlanQuery = new QueryBuilder(prisma.subscriptionPlan, modifiedQueryParams, {
+        searchableFields: subscriptionPlanSearchableFields,
+        filterableFields: subscriptionPlanFilterableFields,
+    })
+        .search()
+        .filter()
+        .paginate()
+        .sort();
+
+    return await subscriptionPlanQuery.execute();
 };
 
 const getSubscriptionPlanById = async (id: string) => {
@@ -32,6 +50,12 @@ const updateSubscriptionPlan = async (id: string, payload: any) => {
     return await prisma.subscriptionPlan.update({
         where: { id },
         data: payload
+    });
+};
+
+const deleteSubscriptionPlan = async (id: string) => {
+    return await prisma.subscriptionPlan.delete({
+        where: { id }
     });
 };
 
@@ -145,11 +169,14 @@ const subscribeViaCard = async (userId: string, subscriptionPlanId: string) => {
 };
 
 const getMySubscription = async (userId: string) => {
-    return await prisma.subscription.findUnique({
+    return prisma.subscription.findMany({
         where: { userId },
         include: {
             subscriptionPlan: true,
             payment: true
+        },
+        orderBy: {
+            createdAt: "desc"
         }
     });
 };
@@ -173,6 +200,7 @@ export const SubscriptionService = {
     getAllSubscriptionPlans,
     getSubscriptionPlanById,
     updateSubscriptionPlan,
+    deleteSubscriptionPlan,
     subscribeViaStripe,
     subscribeViaBkash,
     subscribeViaSsl,
