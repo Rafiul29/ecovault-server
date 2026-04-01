@@ -89,6 +89,7 @@ const getIdeaById = async (id: string, includeDeleted = false) => {
             },
             comments: true,
             votes: true,
+            watchlists: true,
             attachments: true,
             _count: {
                 select: {

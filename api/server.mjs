@@ -798,10 +798,14 @@ var auth = betterAuth({
   redirectURLs: {
     signIn: `${envVars.BETTER_AUTH_URL}/api/v1/auth/google/success`
   },
-  trustedOrigins: [process.env.BETTER_AUTH_URL || "http://localhost:5000", envVars.FRONTEND_URL],
+  trustedOrigins: [process.env.BETTER_AUTH_URL || "http://localhost:5000", "https://ecovault-client.vercel.app", envVars.FRONTEND_URL],
   advanced: {
-    // disableCSRFCheck: true,
-    useSecureCookies: false,
+    disableCSRFCheck: true,
+    cookiePrefix: "better-auth",
+    useSecureCookies: process.env.NODE_ENV === "production",
+    crossSubDomainCookies: {
+      enabled: false
+    },
     cookies: {
       state: {
         attributes: {
@@ -816,7 +820,8 @@ var auth = betterAuth({
           sameSite: "none",
           secure: true,
           httpOnly: true,
-          path: "/"
+          path: "/",
+          maxAge: 5 * 60
         }
       }
     }
@@ -2096,6 +2101,26 @@ var getAdminById = async (id) => {
   });
   return admin;
 };
+var getPublicProfileByUserId = async (userId) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      admin: true,
+      moderator: true,
+      _count: {
+        select: {
+          ideas: true,
+          followers: true,
+          following: true
+        }
+      }
+    }
+  });
+  if (!user) {
+    throw new AppError_default(httpStatus.NOT_FOUND, "User profile not found");
+  }
+  return user;
+};
 var updateAdmin = async (id, payload) => {
   const isAdminExist = await prisma.admin.findUnique({
     where: {
@@ -2301,6 +2326,7 @@ var deleteUserAccount = async (id, requester) => {
 var AdminService = {
   getAllAdmins,
   getAdminById,
+  getPublicProfileByUserId,
   updateAdmin,
   deleteAdmin,
   changeUserStatus,
@@ -2331,6 +2357,18 @@ var getAdminById2 = catchAsync(
       success: true,
       message: "Admin fetched successfully",
       data: admin
+    });
+  }
+);
+var getPublicProfileByUserId2 = catchAsync(
+  async (req, res) => {
+    const { id } = req.params;
+    const user = await AdminService.getPublicProfileByUserId(String(id));
+    sendResponse(res, {
+      httpStatusCode: status6.OK,
+      success: true,
+      message: "Public Profile fetched successfully",
+      data: user
     });
   }
 );
@@ -2422,6 +2460,7 @@ var AdminController = {
   updateAdmin: updateAdmin2,
   deleteAdmin: deleteAdmin2,
   getAdminById: getAdminById2,
+  getPublicProfileByUserId: getPublicProfileByUserId2,
   changeUserStatus: changeUserStatus2,
   changeUserRole: changeUserRole2,
   getAllUsers: getAllUsers2,
@@ -2450,6 +2489,10 @@ router2.get(
   "/:id",
   checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
   AdminController.getAdminById
+);
+router2.get(
+  "/public-profile/:id",
+  AdminController.getPublicProfileByUserId
 );
 router2.patch(
   "/:id",
@@ -3241,6 +3284,7 @@ var getIdeaById = async (id, includeDeleted = false) => {
       },
       comments: true,
       votes: true,
+      watchlists: true,
       attachments: true,
       _count: {
         select: {
@@ -4609,9 +4653,7 @@ var FollowController = {
 // src/app/module/follow/follow.validator.ts
 import { z as z8 } from "zod";
 var followZodSchema = z8.object({
-  body: z8.object({
-    followingId: z8.string().min(1, "Following ID is required")
-  })
+  followingId: z8.string().min(1, "Following ID is required")
 });
 
 // src/app/module/follow/follow.route.ts
@@ -6455,12 +6497,29 @@ var app = express11();
 app.set("query parser", (str) => qs.parse(str));
 app.set("view engine", "ejs");
 app.set("views", path3.resolve(process.cwd(), `src/app/templates`));
-app.use(cors({
-  origin: [envVars.FRONTEND_URL, "http://localhost:3000", "http://localhost:5000"],
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
+var allowedOrigins = [
+  "http://localhost:3000",
+  envVars.FRONTEND_URL,
+  "https://ecovault-client.vercel.app",
+  "http://localhost:3000"
+].filter(Boolean);
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const isAllowed = allowedOrigins.includes(origin) || /^https:\/\/.*\.vercel\.app$/.test(origin);
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin ${origin} not allowed by CORS`));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+    exposedHeaders: ["Set-Cookie"]
+  })
+);
 app.use("/api/auth", toNodeHandler(auth));
 app.post("/webhook", express11.raw({ type: "application/json" }), PaymentController.handleStripeWebhookEvent);
 app.use(express11.urlencoded({ extended: true }));

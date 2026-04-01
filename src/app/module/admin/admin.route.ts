@@ -13,6 +13,12 @@ router.get("/",
 router.get("/:id",
     checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
     AdminController.getAdminById);
+
+// Public route to fetch a unified user profile by ID
+router.get("/public-profile/:id",
+    AdminController.getPublicProfileByUserId);
+
+
 router.patch("/:id",
     checkAuth(Role.SUPER_ADMIN),
     validateRequest(updateAdminZodSchema), AdminController.updateAdmin);

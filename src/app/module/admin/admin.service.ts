@@ -26,6 +26,31 @@ const getAdminById = async (id: string) => {
     return admin;
 }
 
+const getPublicProfileByUserId = async (userId: string) => {
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+            admin: true,
+            moderator: true,
+            _count: {
+                select: {
+                    ideas: true,
+                    followers: true,
+                    following: true,
+                }
+            }
+        }
+    });
+
+    if (!user) {
+        throw new AppError(httpStatus.NOT_FOUND, "User profile not found");
+    }
+
+    // Since this is a public profile, we might want to omit sensitive fields like 'password' if it existed,
+    // but the 'user' table is mostly safe. We'll return it as is since it doesn't contain passwords directly.
+    return user;
+};
+
 const updateAdmin = async (id: string, payload: IUpdateAdminPayload) => {
     //TODO: Validate who is updating the admin user. Only super admin can update admin user and only super admin can update super admin user but admin user cannot update super admin user
 
@@ -297,10 +322,10 @@ const deleteUserAccount = async (id: string, requester: IRequestUser) => {
     });
 }
 
-// Keep existing methods but update export
 export const AdminService = {
     getAllAdmins,
     getAdminById,
+    getPublicProfileByUserId,
     updateAdmin,
     deleteAdmin,
     changeUserStatus,

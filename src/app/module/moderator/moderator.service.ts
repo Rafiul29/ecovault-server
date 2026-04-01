@@ -79,6 +79,7 @@ const toggleModeratorStatus = async (id: string) => {
     where: { id },
     data: { isActive: !mod.isActive },
   });
+
 };
 
 export const ModeratorService = {

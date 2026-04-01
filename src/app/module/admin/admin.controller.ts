@@ -32,6 +32,21 @@ const getAdminById = catchAsync(
     }
 )
 
+const getPublicProfileByUserId = catchAsync(
+    async (req: Request, res: Response) => {
+        const { id } = req.params;
+
+        const user = await AdminService.getPublicProfileByUserId(String(id));
+
+        sendResponse(res, {
+            httpStatusCode: status.OK,
+            success: true,
+            message: "Public Profile fetched successfully",
+            data: user,
+        })
+    }
+)
+
 const updateAdmin = catchAsync(
     async (req: Request, res: Response) => {
         const { id } = req.params;
@@ -133,6 +148,7 @@ export const AdminController = {
     updateAdmin,
     deleteAdmin,
     getAdminById,
+    getPublicProfileByUserId,
     changeUserStatus,
     changeUserRole,
     getAllUsers,
