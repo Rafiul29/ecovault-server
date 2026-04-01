@@ -7,7 +7,7 @@ import { QueryBuilder } from "../../utils/QueryBuilder";
 import { Category } from "../../../generated/prisma/client";
 import { categoryFilterableFields, categoryIncludeConfig, categorySearchableFields } from "./category.constant";
 import { IQueryParams } from "../../interfaces/query.interface";
-import { deleteFileFromCloudinary } from "@/app/config/cloudinary.config";
+import { deleteFileFromCloudinary } from "../../config/cloudinary.config";
 
 const getAllCategories = async (query: IQueryParams) => {
     const categoryQuery = new QueryBuilder<Category>(
@@ -123,7 +123,7 @@ const updateCategory = async (id: string, payload: IUpdateCategoryPayload) => {
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
-    
+
     // Manage icon update
     if (icon !== undefined) {
         if (category.icon && category.icon !== icon) {
@@ -174,7 +174,7 @@ const deleteCategory = async (id: string) => {
             deletedAt: new Date(),
         },
     });
-    
+
     return { message: "Category soft deleted successfully" };
 };
 

@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
 import status from "http-status";
-import { Role } from "@/generated/prisma/enums";
+import { Role } from "../../../generated/prisma/enums";
 import { catchAsync } from "../../shared/catchAsync";
 import { sendResponse } from "../../shared/sendResponse";
 import { CategoryService } from "./category.service";
-import { IQueryParams } from "@/app/interfaces/query.interface";
+import { IQueryParams } from "../../interfaces/query.interface";
 
 const getAllCategories = catchAsync(async (req: Request, res: Response) => {
     const result = await CategoryService.getAllCategories(req.query as IQueryParams);

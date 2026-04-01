@@ -4,7 +4,7 @@ import { checkAuth } from "../../middleware/checkAuth";
 import { validateRequest } from "../../middleware/validateRequest";
 import { CategoryController } from "./category.controller";
 import { createCategoryZodSchema, updateCategoryZodSchema } from "./category.validator";
-import { multerUpload } from "@/app/config/multer.config";
+import { multerUpload } from "../../config/multer.config";
 
 const router = Router();
 
@@ -15,4 +15,4 @@ router.post("/", multerUpload.single('file'), checkAuth(Role.ADMIN, Role.SUPER_A
 router.patch("/:id", multerUpload.single('file'), checkAuth(Role.ADMIN, Role.SUPER_ADMIN), validateRequest(updateCategoryZodSchema), CategoryController.updateCategory);
 router.delete("/:id", checkAuth(Role.ADMIN, Role.SUPER_ADMIN), CategoryController.deleteCategory);
 
-export const CategoryRoutes = router;
+export const CategoryRoutes: Router = router;

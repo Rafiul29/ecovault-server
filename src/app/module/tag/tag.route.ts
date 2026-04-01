@@ -14,4 +14,4 @@ router.post("/", checkAuth(Role.ADMIN, Role.SUPER_ADMIN, Role.MODERATOR), valida
 router.patch("/:id", checkAuth(Role.ADMIN, Role.SUPER_ADMIN), validateRequest(updateTagZodSchema), TagController.updateTag);
 router.delete("/:id", checkAuth(Role.SUPER_ADMIN), TagController.deleteTag);
 
-export const TagRoutes = router;
+export const TagRoutes: Router = router;

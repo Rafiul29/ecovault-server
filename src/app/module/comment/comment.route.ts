@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Router } from "express";
 import { Role } from "../../../generated/prisma/enums";
 import { checkAuth } from "../../middleware/checkAuth";
 import { validateRequest } from "../../middleware/validateRequest";
@@ -37,4 +37,4 @@ router.post(
   CommentController.toggleCommentReaction
 );
 
-export const CommentRoutes = router;
+export const CommentRoutes: Router = router;

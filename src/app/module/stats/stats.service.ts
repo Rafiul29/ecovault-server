@@ -1,4 +1,4 @@
-import { IdeaStatus, PaymentStatus, Role } from "@/generated/prisma/enums";
+import { IdeaStatus, PaymentStatus, Role } from "../../../generated/prisma/enums";
 import AppError from "../../errorHelpers/AppError";
 import { IRequestUser } from "../../interfaces/requestUser.interface";
 import { prisma } from "../../lib/prisma";
@@ -87,6 +87,12 @@ const getModeratorStatsData = async (user: IRequestUser) => {
             where: { status: IdeaStatus.UNDER_REVIEW, isDeleted: false }
         });
 
+        const totalSoldIdeas = await tx.ideaPurchase.count();
+
+        const soldRevenueResult = await tx.ideaPurchase.aggregate({
+            _sum: { amount: true }
+        });
+
         const statusGroups = await tx.idea.groupBy({
             by: ['status'],
             _count: { id: true },
@@ -96,6 +102,8 @@ const getModeratorStatsData = async (user: IRequestUser) => {
         return {
             totalReviewsHandled,
             pendingReviews,
+            totalSoldIdeas,
+            totalSoldPrices: soldRevenueResult._sum.amount || 0,
             ideaStatusDistribution: statusGroups.map(group => ({
                 status: group.status,
                 count: group._count.id

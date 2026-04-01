@@ -2,7 +2,7 @@ import httpStatus from "http-status";
 import { prisma } from "../../lib/prisma";
 import AppError from "../../errorHelpers/AppError";
 import { IAttachmentPayload } from "./attachment.interface";
-import { deleteFileFromCloudinary } from "@/app/config/cloudinary.config";
+import { deleteFileFromCloudinary } from "../../config/cloudinary.config";
 
 const createAttachment = async (payload: IAttachmentPayload, userId: string, role: string) => {
   const { ideaId, type, url, title } = payload;
@@ -48,11 +48,11 @@ const deleteAttachment = async (id: string, userId: string, role: string) => {
     throw new AppError(httpStatus.FORBIDDEN, "You don't have permission to delete this attachment");
   }
 
-      // Delete associated images from Cloudinary permanently
-      if (attachment && attachment.url) {
-          await deleteFileFromCloudinary(attachment.url)
-      }
-  
+  // Delete associated images from Cloudinary permanently
+  if (attachment && attachment.url) {
+    await deleteFileFromCloudinary(attachment.url)
+  }
+
 
   await prisma.attachment.delete({
     where: { id },

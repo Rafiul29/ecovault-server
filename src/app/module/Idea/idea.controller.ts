@@ -4,8 +4,8 @@ import { IdeaService } from "./idea.service";
 import { PaymentService } from "../payment/payment.service";
 import { catchAsync } from "../../shared/catchAsync";
 import { sendResponse } from "../../shared/sendResponse";
-import { Role } from "@/generated/prisma/enums";
-import { IQueryParams } from "@/app/interfaces/query.interface";
+import { Role } from "../../../generated/prisma/enums";
+import { IQueryParams } from "../../interfaces/query.interface";
 
 const getAllIdeas = catchAsync(async (req: Request, res: Response) => {
     const result = await IdeaService.getAllIdeas(req.query as IQueryParams);

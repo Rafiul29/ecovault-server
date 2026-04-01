@@ -7,6 +7,8 @@ export const ideaSearchableFields = [
     'problemStatement',
     'proposedSolution',
     'author.name',
+    'categories.category.name',
+    'tags.tag.name',
 ]
 
 export const ideaFilterableFields = [
@@ -17,7 +19,11 @@ export const ideaFilterableFields = [
     'price',
     'isFeatured',
     'categories.category.name',
+    'categories.category.id',
+    'categories.category.slug',
     'tags.tag.name',
+    'tags.tag.id',
+    'tags.tag.slug',
     'createdAt',
     'updatedAt',
     'isDeleted',

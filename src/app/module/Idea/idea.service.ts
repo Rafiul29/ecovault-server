@@ -6,7 +6,7 @@ import { normalizeSlug } from "../../utils/slug";
 import { QueryBuilder } from "../../utils/QueryBuilder";
 import { ideaFilterableFields, ideaIncludeConfig, ideaSearchableFields } from "./idea.constant";
 import { IQueryParams } from "../../interfaces/query.interface";
-import { deleteFileFromCloudinary } from "@/app/config/cloudinary.config";
+import { deleteFileFromCloudinary } from "../../config/cloudinary.config";
 
 const getAllIdeas = async (queryParams: IQueryParams) => {
     const ideaQuery = new QueryBuilder(prisma.idea, queryParams, {

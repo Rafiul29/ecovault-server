@@ -1,7 +1,7 @@
-import express from "express";
+import express, { Router } from "express";
 import { MemberController } from "./member.controller";
 import { checkAuth } from "../../middleware/checkAuth";
-import { Role } from "@/generated/prisma/enums";
+import { Role } from "../../../generated/prisma/enums";
 
 const router = express.Router();
 
@@ -18,4 +18,4 @@ router.get("/invoice/:paymentId", MemberController.getInvoice);
 // Admin-only routes
 router.get("/", checkAuth(Role.ADMIN, Role.SUPER_ADMIN), MemberController.getAllMembers);
 
-export const MemberRoutes = router;
+export const MemberRoutes: Router = router;

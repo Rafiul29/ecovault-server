@@ -1,10 +1,11 @@
 import express from "express";
+import { Router } from "express";
 import { IdeaController } from "./idea.controller";
 import { checkAuth } from "../../middleware/checkAuth";
-import { Role } from "@/generated/prisma/enums";
-import { validateRequest } from "@/app/middleware/validateRequest";
+import { Role } from "../../../generated/prisma/enums";
+import { validateRequest } from "../../middleware/validateRequest";
 import { createIdeaZodSchema, updateIdeaZodSchema } from "./idea.validator";
-import { multerUpload } from "@/app/config/multer.config";
+import { multerUpload } from "../../config/multer.config";
 
 const router = express.Router();
 
@@ -21,4 +22,4 @@ router.delete("/:id", checkAuth(Role.ADMIN, Role.SUPER_ADMIN, Role.MODERATOR), I
 
 router.post("/purchase", checkAuth(Role.MEMBER), IdeaController.purchaseIdea);
 
-export const IdeaRoutes = router;
+export const IdeaRoutes: Router = router;

@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Router } from "express";
 import { Role } from "../../../generated/prisma/enums";
 import { checkAuth } from "../../middleware/checkAuth";
 import { validateRequest } from "../../middleware/validateRequest";
@@ -33,4 +33,4 @@ router.patch(
   ModeratorController.toggleModeratorStatus
 );
 
-export const ModeratorRoutes = router;
+export const ModeratorRoutes: Router = router;

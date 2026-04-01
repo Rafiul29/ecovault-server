@@ -4,7 +4,7 @@ import { checkAuth } from "../../middleware/checkAuth";
 import { validateRequest } from "../../middleware/validateRequest";
 import { AttachmentController } from "./attachment.controller";
 import { createAttachmentZodSchema } from "./attachment.validator";
-import { multerUpload } from "@/app/config/multer.config";
+import { multerUpload } from "../../config/multer.config";
 
 const router = express.Router();
 

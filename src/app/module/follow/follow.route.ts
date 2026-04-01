@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Router } from "express";
 import { Role } from "../../../generated/prisma/enums";
 import { checkAuth } from "../../middleware/checkAuth";
 import { validateRequest } from "../../middleware/validateRequest";
@@ -17,4 +17,4 @@ router.post(
   FollowController.toggleFollow
 );
 
-export const FollowRoutes = router;
+export const FollowRoutes: Router = router;

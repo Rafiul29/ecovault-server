@@ -18,7 +18,7 @@ import { StatsRoutes } from "../module/stats/stats.route";
 
 const router = Router();
 
-router.use("/auth", AuthRoutes);    
+router.use("/auth", AuthRoutes);
 router.use("/admins", AdminRoutes);
 router.use("/categories", CategoryRoutes);
 router.use("/tags", TagRoutes);
@@ -35,4 +35,4 @@ router.use("/subscriptions", SubscriptionRoutes);
 router.use("/members", MemberRoutes);
 router.use("/stats", StatsRoutes);
 
-export const IndexRoutes:Router = router;
+export const IndexRoutes: Router = router;
