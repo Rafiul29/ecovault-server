@@ -109,9 +109,9 @@ const prepareSubscription = async (userId: string, subscriptionPlanId: string) =
 const subscribeViaStripe = async (userId: string, subscriptionPlanId: string) => {
     const prepared = await prepareSubscription(userId, subscriptionPlanId);
 
-    if (prepared.isFree) {
-        return { message: prepared.message, subscription: prepared.subscription };
-    }
+    // if (prepared.isFree) {
+    //     return { message: prepared.message, subscription: prepared.subscription };
+    // }
 
     const { plan, payment } = prepared;
 
@@ -131,8 +131,8 @@ const subscribeViaStripe = async (userId: string, subscriptionPlanId: string) =>
             },
         ],
         mode: 'payment',
-        success_url: `${envVars.FRONTEND_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${envVars.FRONTEND_URL}/cancel`,
+        success_url: `${envVars.FRONTEND_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${envVars.FRONTEND_URL}/payment/cancel`,
         metadata: {
             paymentId: payment!.id,
             subscriptionPlanId: plan!.id,

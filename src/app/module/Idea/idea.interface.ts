@@ -26,4 +26,5 @@ export interface IUpdateIdeaPayload {
     isPaid?: boolean;
     price?: number;
     isFeatured?: boolean;
+    adminFeedback?: string;
 }

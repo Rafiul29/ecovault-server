@@ -734,55 +734,89 @@ var auth = betterAuth({
     bearer(),
     emailOTP({
       overrideDefaultEmailVerification: true,
-      async sendVerificationOTP({ email, otp, type }) {
+      async sendVerificationOTP({ email, otp, type, user }) {
+        const dbUser = user || await prisma.user.findUnique({ where: { email } });
+        if (!dbUser) {
+          console.error(`User ${email} not found.`);
+          return;
+        }
+        if (dbUser.role === Role.SUPER_ADMIN) return;
         if (type === "email-verification") {
-          const user = await prisma.user.findUnique({
-            where: {
-              email
+          await sendEmail({
+            to: email,
+            subject: "Verify your email",
+            templateName: "otp",
+            templateData: {
+              name: dbUser.name,
+              otp
             }
           });
-          if (!user) {
-            console.error(`User with email ${email} not found. Cannot send verification OTP.`);
-            return;
-          }
-          if (user && user.role === Role.SUPER_ADMIN) {
-            console.log(`User with email ${email} is a super admin. Skipping sending verification OTP.`);
-            return;
-          }
-          if (user && !user.emailVerified) {
-            sendEmail({
-              to: email,
-              subject: "Verify your email",
-              templateName: "otp",
-              templateData: {
-                name: user.name,
-                otp
-              }
-            });
-          }
         } else if (type === "forget-password") {
-          const user = await prisma.user.findUnique({
-            where: {
-              email
+          await sendEmail({
+            to: email,
+            subject: "Password Reset OTP",
+            templateName: "otp",
+            templateData: {
+              name: dbUser.name,
+              otp
             }
           });
-          if (user) {
-            sendEmail({
-              to: email,
-              subject: "Password Reset OTP",
-              templateName: "otp",
-              templateData: {
-                name: user.name,
-                otp
-              }
-            });
-          }
         }
       },
-      expiresIn: 2 * 60,
-      // 2 minutes in seconds
+      expiresIn: 120,
+      // 2 minutes
       otpLength: 6
     })
+    // emailOTP({
+    //     overrideDefaultEmailVerification: true,
+    //     async sendVerificationOTP({ email, otp, type }) {
+    //         if (type === "email-verification") {
+    //             const user = await prisma.user.findUnique({
+    //                 where: {
+    //                     email,
+    //                 }
+    //             })
+    //             if (!user) {
+    //                 console.error(`User with email ${email} not found. Cannot send verification OTP.`);
+    //                 return;
+    //             }
+    //             if (user && user.role === Role.SUPER_ADMIN) {
+    //                 console.log(`User with email ${email} is a super admin. Skipping sending verification OTP.`);
+    //                 return;
+    //             }
+    //             if (user && !user.emailVerified) {
+    //                 sendEmail({
+    //                     to: email,
+    //                     subject: "Verify your email",
+    //                     templateName: "otp",
+    //                     templateData: {
+    //                         name: user.name,
+    //                         otp,
+    //                     }
+    //                 })
+    //             }
+    //         } else if (type === "forget-password") {
+    //             const user = await prisma.user.findUnique({
+    //                 where: {
+    //                     email,
+    //                 }
+    //             })
+    //             if (user) {
+    //                 sendEmail({
+    //                     to: email,
+    //                     subject: "Password Reset OTP",
+    //                     templateName: "otp",
+    //                     templateData: {
+    //                         name: user.name,
+    //                         otp,
+    //                     }
+    //                 })
+    //             }
+    //         }
+    //     },
+    //     expiresIn: 2 * 60, // 2 minutes in seconds
+    //     otpLength: 6,
+    // })
   ],
   session: {
     expiresIn: 60 * 60 * 60 * 24,
@@ -3219,6 +3253,20 @@ var ideaIncludeConfig = {
   }
 };
 
+// src/generated/prisma/internal/prismaNamespaceBrowser.ts
+import * as runtime3 from "@prisma/client/runtime/index-browser";
+var NullTypes4 = {
+  DbNull: runtime3.NullTypes.DbNull,
+  JsonNull: runtime3.NullTypes.JsonNull,
+  AnyNull: runtime3.NullTypes.AnyNull
+};
+var TransactionIsolationLevel2 = runtime3.makeStrictEnum({
+  ReadUncommitted: "ReadUncommitted",
+  ReadCommitted: "ReadCommitted",
+  RepeatableRead: "RepeatableRead",
+  Serializable: "Serializable"
+});
+
 // src/app/module/Idea/idea.service.ts
 var getAllIdeas = async (queryParams) => {
   const ideaQuery = new QueryBuilder(prisma.idea, queryParams, {
@@ -3368,15 +3416,17 @@ var createIdea = async (payload, authorId) => {
   });
   return await getIdeaById(result.id);
 };
-var updateIdea = async (id, payload, authorId) => {
+var updateIdea = async (id, payload, authorId, userRole) => {
   const idea = await prisma.idea.findUnique({ where: { id } });
   if (!idea) {
     throw new AppError_default(httpStatus4.NOT_FOUND, "Idea not found");
   }
   if (idea.authorId !== authorId) {
-    throw new AppError_default(httpStatus4.FORBIDDEN, "You can only update your own ideas");
+    if (userRole !== Role.ADMIN && userRole !== Role.SUPER_ADMIN) {
+      throw new AppError_default(httpStatus4.FORBIDDEN, "You can only update your own ideas");
+    }
   }
-  const { title, slug, description, problemStatement, proposedSolution, images, categories, tags, status: status17, isPaid, price, isFeatured } = payload;
+  const { title, slug, description, problemStatement, proposedSolution, images, categories, tags, status: status17, isPaid, price, isFeatured, adminFeedback } = payload;
   if (categories && categories.length > 0) {
     const categoryCount = await prisma.category.count({
       where: { id: { in: categories } }
@@ -3409,6 +3459,7 @@ var updateIdea = async (id, payload, authorId) => {
   if (description) updateData.description = description;
   if (problemStatement) updateData.problemStatement = problemStatement;
   if (proposedSolution) updateData.proposedSolution = proposedSolution;
+  if (adminFeedback) updateData.adminFeedback = adminFeedback;
   if (images !== void 0) {
     const currentImages = idea.images || [];
     const removedImages = currentImages.filter((img) => !images.includes(img));
@@ -3676,6 +3727,21 @@ var handlerStripeWebhookEvent = async (event) => {
       });
       if (session.payment_status === "paid") {
         try {
+          if (user2.role === Role.MEMBER) {
+            await prisma.user.update({
+              where: { id: userId2 },
+              data: {
+                role: Role.MODERATOR
+              }
+            });
+            await prisma.moderator.create({
+              data: {
+                userId: userId2,
+                name: user2.name,
+                email: user2.email
+              }
+            });
+          }
           const pdfBuffer2 = await generateInvoicePdf({
             invoiceId: paymentId2,
             userName: user2.name,
@@ -3909,8 +3975,8 @@ var createStripeSession = async (userId, ideaId) => {
       }
     ],
     mode: "payment",
-    success_url: `${envVars.FRONTEND_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${envVars.FRONTEND_URL}/cancel`,
+    success_url: `${envVars.FRONTEND_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${envVars.FRONTEND_URL}/payment/cancel`,
     metadata: {
       paymentId: payment.id,
       ideaId: idea.id,
@@ -4038,11 +4104,13 @@ var updateIdea2 = catchAsync(async (req, res) => {
   const payload = {
     ...req.body
   };
+  console.log(req.body);
   if (req.files && req.files.length > 0) {
     payload.images = req.files.map((file) => file.path);
   }
   const authorId = req.user?.userId;
-  const idea = await IdeaService.updateIdea(id, payload, authorId);
+  const userRole = req.user?.role;
+  const idea = await IdeaService.updateIdea(id, payload, authorId, userRole);
   sendResponse(res, {
     httpStatusCode: httpStatus5.OK,
     success: true,
@@ -4151,7 +4219,8 @@ var updateIdeaZodSchema = z5.object({
   status: z5.enum(["DRAFT", "UNDER_REVIEW", "APPROVED", "REJECTED"]).optional(),
   isPaid: z5.boolean().optional(),
   price: z5.number().min(0).optional(),
-  isFeatured: z5.boolean().optional()
+  isFeatured: z5.boolean().optional(),
+  adminFeedback: z5.string().optional()
 });
 
 // src/app/module/Idea/idea.route.ts
@@ -5471,9 +5540,6 @@ var prepareSubscription = async (userId, subscriptionPlanId) => {
 };
 var subscribeViaStripe = async (userId, subscriptionPlanId) => {
   const prepared = await prepareSubscription(userId, subscriptionPlanId);
-  if (prepared.isFree) {
-    return { message: prepared.message, subscription: prepared.subscription };
-  }
   const { plan, payment } = prepared;
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ["card"],
@@ -5491,8 +5557,8 @@ var subscribeViaStripe = async (userId, subscriptionPlanId) => {
       }
     ],
     mode: "payment",
-    success_url: `${envVars.FRONTEND_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${envVars.FRONTEND_URL}/cancel`,
+    success_url: `${envVars.FRONTEND_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${envVars.FRONTEND_URL}/payment/cancel`,
     metadata: {
       paymentId: payment.id,
       subscriptionPlanId: plan.id,
@@ -5607,18 +5673,9 @@ var subscribeToPlan = catchAsync(async (req, res) => {
   const userId = req.user.userId;
   const { subscriptionPlanId, paymentMethod } = req.body;
   const method = paymentMethod || "STRIPE";
-  let result;
-  if (method === "BKASH") {
-    result = await SubscriptionService.subscribeViaBkash(userId, subscriptionPlanId);
-  } else if (method === "SSLECOMMERCE") {
-    result = await SubscriptionService.subscribeViaSsl(userId, subscriptionPlanId);
-  } else if (method === "NAGAD") {
-    result = await SubscriptionService.subscribeViaNagad(userId, subscriptionPlanId);
-  } else if (method === "CARD") {
-    result = await SubscriptionService.subscribeViaCard(userId, subscriptionPlanId);
-  } else {
-    result = await SubscriptionService.subscribeViaStripe(userId, subscriptionPlanId);
-  }
+  console.log("SubscriptionPlanId:", subscriptionPlanId);
+  console.log("PaymentMethod:", method);
+  let result = await SubscriptionService.subscribeViaStripe(userId, subscriptionPlanId);
   sendResponse(res, {
     httpStatusCode: status12.OK,
     success: true,
@@ -6500,8 +6557,7 @@ app.set("views", path3.resolve(process.cwd(), `src/app/templates`));
 var allowedOrigins = [
   "http://localhost:3000",
   envVars.FRONTEND_URL,
-  "https://ecovault-client.vercel.app",
-  "http://localhost:3000"
+  "https://ecovault-client.vercel.app"
 ].filter(Boolean);
 app.use(
   cors({

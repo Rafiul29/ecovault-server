@@ -7,6 +7,7 @@ import { QueryBuilder } from "../../utils/QueryBuilder";
 import { ideaFilterableFields, ideaIncludeConfig, ideaSearchableFields } from "./idea.constant";
 import { IQueryParams } from "../../interfaces/query.interface";
 import { deleteFileFromCloudinary } from "../../config/cloudinary.config";
+import { Role } from "@/generated/prisma/browser";
 
 const getAllIdeas = async (queryParams: IQueryParams) => {
     const ideaQuery = new QueryBuilder(prisma.idea, queryParams, {
@@ -192,17 +193,20 @@ const createIdea = async (payload: ICreateIdeaPayload, authorId: string) => {
     return await getIdeaById(result.id);
 };
 
-const updateIdea = async (id: string, payload: IUpdateIdeaPayload, authorId: string) => {
+const updateIdea = async (id: string, payload: IUpdateIdeaPayload, authorId: string, userRole?: string) => {
     const idea = await prisma.idea.findUnique({ where: { id } });
     if (!idea) {
         throw new AppError(httpStatus.NOT_FOUND, "Idea not found");
     }
 
     if (idea.authorId !== authorId) {
-        throw new AppError(httpStatus.FORBIDDEN, "You can only update your own ideas");
+        // Allow admin/super admin to update any idea
+        if (userRole !== Role.ADMIN && userRole !== Role.SUPER_ADMIN) {
+            throw new AppError(httpStatus.FORBIDDEN, "You can only update your own ideas");
+        }
     }
 
-    const { title, slug, description, problemStatement, proposedSolution, images, categories, tags, status, isPaid, price, isFeatured } = payload;
+    const { title, slug, description, problemStatement, proposedSolution, images, categories, tags, status, isPaid, price, isFeatured ,adminFeedback} = payload;
 
     // Validate categories exist if provided
     if (categories && categories.length > 0) {
@@ -242,6 +246,7 @@ const updateIdea = async (id: string, payload: IUpdateIdeaPayload, authorId: str
     if (description) updateData.description = description;
     if (problemStatement) updateData.problemStatement = problemStatement;
     if (proposedSolution) updateData.proposedSolution = proposedSolution;
+    if (adminFeedback) updateData.adminFeedback = adminFeedback;
 
     // Manage images update
     if (images !== undefined) {

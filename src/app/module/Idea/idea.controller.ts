@@ -62,13 +62,17 @@ const updateIdea = catchAsync(async (req: Request, res: Response) => {
     const payload = {
         ...req.body,
     };
+    console.log(req.body);
 
     if (req.files && (req.files as any[]).length > 0) {
         payload.images = (req.files as any[]).map((file: any) => file.path);
     }
 
     const authorId = req.user?.userId;
-    const idea = await IdeaService.updateIdea(id, payload, authorId);
+    const userRole = req.user?.role;
+
+    // If admin/super admin is updating, we might want to bypass authorId check
+    const idea = await IdeaService.updateIdea(id, payload, authorId,userRole);
     sendResponse(res, {
         httpStatusCode: httpStatus.OK,
         success: true,

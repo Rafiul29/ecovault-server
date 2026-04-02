@@ -80,58 +80,99 @@ export const auth = betterAuth({
         bearer(),
         emailOTP({
             overrideDefaultEmailVerification: true,
-            async sendVerificationOTP({ email, otp, type }) {
+            async sendVerificationOTP({ email, otp, type, user }) {
+                // Note: Better Auth often passes the user object directly in the callback args
+
+                // 1. If user isn't passed in args, fetch it, but don't be too restrictive
+                const dbUser = user || await prisma.user.findUnique({ where: { email } });
+
+                if (!dbUser) {
+                    console.error(`User ${email} not found.`);
+                    return;
+                }
+
+                // 2. Skip for Super Admins as per your logic
+                if (dbUser.role === Role.SUPER_ADMIN) return;
+
                 if (type === "email-verification") {
-                    const user = await prisma.user.findUnique({
-                        where: {
-                            email,
+                    await sendEmail({
+                        to: email,
+                        subject: "Verify your email",
+                        templateName: "otp",
+                        templateData: {
+                            name: dbUser.name,
+                            otp,
                         }
-                    })
-
-                    if (!user) {
-                        console.error(`User with email ${email} not found. Cannot send verification OTP.`);
-                        return;
-                    }
-
-                    if (user && user.role === Role.SUPER_ADMIN) {
-                        console.log(`User with email ${email} is a super admin. Skipping sending verification OTP.`);
-                        return;
-                    }
-
-                    if (user && !user.emailVerified) {
-                        sendEmail({
-                            to: email,
-                            subject: "Verify your email",
-                            templateName: "otp",
-                            templateData: {
-                                name: user.name,
-                                otp,
-                            }
-                        })
-                    }
+                    });
                 } else if (type === "forget-password") {
-                    const user = await prisma.user.findUnique({
-                        where: {
-                            email,
+                    await sendEmail({
+                        to: email,
+                        subject: "Password Reset OTP",
+                        templateName: "otp",
+                        templateData: {
+                            name: dbUser.name,
+                            otp,
                         }
-                    })
-
-                    if (user) {
-                        sendEmail({
-                            to: email,
-                            subject: "Password Reset OTP",
-                            templateName: "otp",
-                            templateData: {
-                                name: user.name,
-                                otp,
-                            }
-                        })
-                    }
+                    });
                 }
             },
-            expiresIn: 2 * 60, // 2 minutes in seconds
+            expiresIn: 120, // 2 minutes
             otpLength: 6,
         })
+        // emailOTP({
+        //     overrideDefaultEmailVerification: true,
+        //     async sendVerificationOTP({ email, otp, type }) {
+        //         if (type === "email-verification") {
+        //             const user = await prisma.user.findUnique({
+        //                 where: {
+        //                     email,
+        //                 }
+        //             })
+
+        //             if (!user) {
+        //                 console.error(`User with email ${email} not found. Cannot send verification OTP.`);
+        //                 return;
+        //             }
+
+        //             if (user && user.role === Role.SUPER_ADMIN) {
+        //                 console.log(`User with email ${email} is a super admin. Skipping sending verification OTP.`);
+        //                 return;
+        //             }
+
+        //             if (user && !user.emailVerified) {
+        //                 sendEmail({
+        //                     to: email,
+        //                     subject: "Verify your email",
+        //                     templateName: "otp",
+        //                     templateData: {
+        //                         name: user.name,
+        //                         otp,
+        //                     }
+        //                 })
+        //             }
+        //         } else if (type === "forget-password") {
+        //             const user = await prisma.user.findUnique({
+        //                 where: {
+        //                     email,
+        //                 }
+        //             })
+
+        //             if (user) {
+        //                 sendEmail({
+        //                     to: email,
+        //                     subject: "Password Reset OTP",
+        //                     templateName: "otp",
+        //                     templateData: {
+        //                         name: user.name,
+        //                         otp,
+        //                     }
+        //                 })
+        //             }
+        //         }
+        //     },
+        //     expiresIn: 2 * 60, // 2 minutes in seconds
+        //     otpLength: 6,
+        // })
     ],
 
     session: {

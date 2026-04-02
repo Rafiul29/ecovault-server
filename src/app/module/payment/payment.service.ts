@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import Stripe from "stripe";
 import { stripe } from "../../config/stripe.config";
-import { PaymentStatus } from "../../../generated/prisma/enums";
+import { PaymentStatus, Role } from "../../../generated/prisma/enums";
 import { uploadFileToCloudinary } from "../../config/cloudinary.config";
 import { prisma } from "../../lib/prisma";
 import { sendEmail } from "../../utils/email";
@@ -20,6 +20,7 @@ const handlerStripeWebhookEvent = async (event: Stripe.Event) => {
             const subscriptionPlanId = session.metadata?.subscriptionPlanId;
             const userId = session.metadata?.userId;
 
+
             if (!paymentId || !subscriptionPlanId || !userId) {
                 console.error("⚠️ Missing metadata in webhook event for subscription");
                 return { message: "Missing metadata for subscription" };
@@ -35,6 +36,7 @@ const handlerStripeWebhookEvent = async (event: Stripe.Event) => {
             if (!user || !plan) return { message: "User or Plan not found" };
 
             const result = await prisma.$transaction(async (tx) => {
+
                 const updatedPayment = await tx.payment.update({
                     where: { id: paymentId },
                     data: {
@@ -67,12 +69,31 @@ const handlerStripeWebhookEvent = async (event: Stripe.Event) => {
                     });
                 }
 
+
+
                 return updatedPayment;
             });
 
             if (session.payment_status === "paid") {
                 // Generate Invoice and Send Email
                 try {
+
+                    if (user.role === Role.MEMBER) {
+                        await prisma.user.update({
+                            where: { id: userId },
+                            data: {
+                                role: Role.MODERATOR
+                            }
+                        });
+                        await prisma.moderator.create({
+                            data: {
+                                userId,
+                                name: user.name,
+                                email: user.email,
+                            }
+                        });
+                    }
+
                     const pdfBuffer = await generateInvoicePdf({
                         invoiceId: paymentId,
                         userName: user.name,
@@ -346,8 +367,8 @@ const createStripeSession = async (userId: string, ideaId: string) => {
             },
         ],
         mode: 'payment',
-        success_url: `${envVars.FRONTEND_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${envVars.FRONTEND_URL}/cancel`,
+        success_url: `${envVars.FRONTEND_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${envVars.FRONTEND_URL}/payment/cancel`,
         metadata: {
             paymentId: payment.id,
             ideaId: idea.id,
@@ -390,7 +411,7 @@ const getMyPurchases = async (userId: string) => {
                     id: true,
                     name: true,
                     email: true,
-                      image: true
+                    image: true
                 }
             }
         },

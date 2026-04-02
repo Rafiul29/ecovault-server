@@ -20,7 +20,7 @@ app.set("views", path.resolve(process.cwd(), `src/app/templates`))
 
 const allowedOrigins: string[] = [
   "http://localhost:3000",
-  envVars.FRONTEND_URL, "https://ecovault-client.vercel.app", "http://localhost:3000"
+  envVars.FRONTEND_URL, "https://ecovault-client.vercel.app"
 ].filter(Boolean);
 
 

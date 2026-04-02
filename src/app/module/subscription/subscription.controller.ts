@@ -65,18 +65,23 @@ const subscribeToPlan = catchAsync(async (req: Request, res: Response) => {
     const { subscriptionPlanId, paymentMethod } = req.body;
     const method = paymentMethod || 'STRIPE';
 
-    let result;
-    if (method === 'BKASH') {
-        result = await SubscriptionService.subscribeViaBkash(userId, subscriptionPlanId);
-    } else if (method === 'SSLECOMMERCE') {
-        result = await SubscriptionService.subscribeViaSsl(userId, subscriptionPlanId);
-    } else if (method === 'NAGAD') {
-        result = await SubscriptionService.subscribeViaNagad(userId, subscriptionPlanId);
-    } else if (method === 'CARD') {
-        result = await SubscriptionService.subscribeViaCard(userId, subscriptionPlanId);
-    } else {
-        result = await SubscriptionService.subscribeViaStripe(userId, subscriptionPlanId);
-    }
+    console.log("SubscriptionPlanId:", subscriptionPlanId);
+    console.log("PaymentMethod:", method);
+
+    let result = await SubscriptionService.subscribeViaStripe(userId, subscriptionPlanId);
+    // if (method === 'BKASH') {
+    //     result = await SubscriptionService.subscribeViaBkash(userId, subscriptionPlanId);
+    // } else if (method === 'SSLECOMMERCE') {
+    //     result = await SubscriptionService.subscribeViaSsl(userId, subscriptionPlanId);
+    // } else if (method === 'NAGAD') {
+    //     result = await SubscriptionService.subscribeViaNagad(userId, subscriptionPlanId);
+    // } else if (method === 'CARD') {
+    //     result = await SubscriptionService.subscribeViaCard(userId, subscriptionPlanId);
+    // } else {
+
+    // }
+
+    // console.log("Subscription result:", result);
 
     sendResponse(res, {
         httpStatusCode: status.OK,

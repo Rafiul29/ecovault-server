@@ -28,4 +28,5 @@ export const updateIdeaZodSchema = z.object({
     isPaid: z.boolean().optional(),
     price: z.number().min(0).optional(),
     isFeatured: z.boolean().optional(),
+    adminFeedback: z.string().optional(),
 });
