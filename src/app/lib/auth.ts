@@ -8,6 +8,22 @@ import { prisma } from "./prisma";
 
 const connectionString = process.env.DATABASE_URL;
 
+type OptVerification = {
+    email: string;
+    otp: string;
+    type: "email-verification" | "forget-password";
+    user?: {
+        id: string;
+        name: string;
+        email: string;
+        role: Role;
+        status: UserStatus;
+        needPasswordChange: boolean;
+        emailVerified: boolean;
+        isDeleted: boolean;
+        deletedAt: Date | null;
+    }
+};
 export const auth = betterAuth({
     baseURL: envVars.BETTER_AUTH_URL,
     secret: envVars.BETTER_AUTH_SECRET,
@@ -192,8 +208,8 @@ export const auth = betterAuth({
 
 
     advanced: {
-        disableCSRFCheck: true,
-        cookiePrefix: "better-auth",
+        // disableCSRFCheck: true,
+        // cookiePrefix: "better-auth",
         useSecureCookies: process.env.NODE_ENV === "production",
         crossSubDomainCookies: {
             enabled: false,
@@ -213,7 +229,6 @@ export const auth = betterAuth({
                     secure: true,
                     httpOnly: true,
                     path: "/",
-                    maxAge: 5 * 60
                 }
             }
         }

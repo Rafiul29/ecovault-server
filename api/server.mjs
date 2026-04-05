@@ -834,8 +834,8 @@ var auth = betterAuth({
   },
   trustedOrigins: [process.env.BETTER_AUTH_URL || "http://localhost:5000", "https://ecovault-client.vercel.app", envVars.FRONTEND_URL],
   advanced: {
-    disableCSRFCheck: true,
-    cookiePrefix: "better-auth",
+    // disableCSRFCheck: true,
+    // cookiePrefix: "better-auth",
     useSecureCookies: process.env.NODE_ENV === "production",
     crossSubDomainCookies: {
       enabled: false
@@ -854,8 +854,7 @@ var auth = betterAuth({
           sameSite: "none",
           secure: true,
           httpOnly: true,
-          path: "/",
-          maxAge: 5 * 60
+          path: "/"
         }
       }
     }

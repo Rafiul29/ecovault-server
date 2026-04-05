@@ -3,10 +3,14 @@ import httpStatus from "http-status";
 import { catchAsync } from "../../shared/catchAsync";
 import { sendResponse } from "../../shared/sendResponse";
 import { ModeratorService } from "./moderator.service";
+import AppError from "../../errorHelpers/AppError";
 
 const getMyProfile = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const profile = await ModeratorService.getMyProfile(userId);
+  if (!profile) {
+    throw new AppError(httpStatus.NOT_FOUND, "Moderator profile not found");
+  }
   sendResponse(res, {
     httpStatusCode: httpStatus.OK,
     success: true,
@@ -17,7 +21,14 @@ const getMyProfile = catchAsync(async (req: Request, res: Response) => {
 
 const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user!.userId;
-  const updatedProfile = await ModeratorService.updateMyProfile(userId, req.body);
+  const payload = {
+    ...req.body,
+  }
+  if (req.file) {
+    payload.image = req.file.path;
+  }
+  console.log("payload", payload)
+  const updatedProfile = await ModeratorService.updateMyProfile(userId, payload);
   sendResponse(res, {
     httpStatusCode: httpStatus.OK,
     success: true,

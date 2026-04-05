@@ -9,7 +9,7 @@ import { moderatorIncludeConfig } from "./moderator.constant";
 const getMyProfile = async (userId: string) => {
   const profile = await prisma.moderator.findUnique({
     where: { userId },
-    include: { user: { select: { id: true, email: true, image: true, role: true, status: true } } },
+    include: { user: { select: { id: true, name: true, email: true, image: true, role: true, status: true } } },
   });
 
   if (!profile) {
@@ -20,6 +20,7 @@ const getMyProfile = async (userId: string) => {
 };
 
 const updateMyProfile = async (userId: string, payload: IModeratorPayload) => {
+
   const moderator = await prisma.moderator.findUnique({
     where: { userId },
   });
@@ -27,6 +28,7 @@ const updateMyProfile = async (userId: string, payload: IModeratorPayload) => {
   if (!moderator) {
     throw new AppError(httpStatus.NOT_FOUND, "Moderator profile not found");
   }
+
 
   // Use transaction to sync name update to User model
   const result = await prisma.$transaction(async (tx) => {
@@ -40,7 +42,10 @@ const updateMyProfile = async (userId: string, payload: IModeratorPayload) => {
     if (payload.name) {
       await tx.user.update({
         where: { id: userId },
-        data: { name: payload.name },
+        data: {
+          name: payload.name,
+          ...(payload.image !== undefined && { image: payload.image }),
+        },
       });
     }
 

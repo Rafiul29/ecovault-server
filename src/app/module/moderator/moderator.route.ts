@@ -4,6 +4,7 @@ import { checkAuth } from "../../middleware/checkAuth";
 import { validateRequest } from "../../middleware/validateRequest";
 import { ModeratorController } from "./moderator.controller";
 import { updateModeratorZodSchema } from "./moderator.validator";
+import { multerUpload } from "../../config/multer.config";
 
 const router = express.Router();
 
@@ -15,6 +16,7 @@ router.get(
 
 router.patch(
   "/profile",
+  multerUpload.single('file'),
   checkAuth(Role.MODERATOR),
   validateRequest(updateModeratorZodSchema),
   ModeratorController.updateMyProfile

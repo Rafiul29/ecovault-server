@@ -6,4 +6,5 @@ export interface IModeratorPayload {
   address?: string;
   phoneNumber?: string;
   socialLinks?: any;
+  image?: string | undefined;
 }
