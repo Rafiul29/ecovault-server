@@ -20,6 +20,6 @@ router.post("/", multerUpload.array('files', 5), validateRequest(createIdeaZodSc
 router.put("/:id", multerUpload.array('files', 5), validateRequest(updateIdeaZodSchema), checkAuth(Role.ADMIN, Role.SUPER_ADMIN, Role.MODERATOR), IdeaController.updateIdea);
 router.delete("/:id", checkAuth(Role.ADMIN, Role.SUPER_ADMIN, Role.MODERATOR), IdeaController.deleteIdea);
 
-router.post("/purchase", checkAuth(Role.MEMBER), IdeaController.purchaseIdea);
+router.post("/purchase", checkAuth(Role.MODERATOR, Role.MEMBER), IdeaController.purchaseIdea);
 
 export const IdeaRoutes: Router = router;

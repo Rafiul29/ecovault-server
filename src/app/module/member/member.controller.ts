@@ -15,6 +15,23 @@ const getMyProfile = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user?.userId;
+    const file = req.file;
+
+    const payload = {
+        ...req.body,
+        ...(file && { image: file.path })
+    }
+    const result = await MemberService.updateMyProfile(userId, payload);
+    sendResponse(res, {
+        httpStatusCode: httpStatus.OK,
+        success: true,
+        message: "Profile updated successfully",
+        data: result,
+    });
+});
+
 const getMyPurchasedIdeas = catchAsync(async (req: Request, res: Response) => {
     const userId = req.user?.userId;
     const result = await MemberService.getMyPurchasedIdeas(userId);
@@ -84,6 +101,7 @@ const getAllMembers = catchAsync(async (req: Request, res: Response) => {
 
 export const MemberController = {
     getMyProfile,
+    updateMyProfile,
     getMyPurchasedIdeas,
     getMyFollowers,
     getMyFollowing,

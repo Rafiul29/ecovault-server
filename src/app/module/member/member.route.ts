@@ -2,6 +2,9 @@ import express, { Router } from "express";
 import { MemberController } from "./member.controller";
 import { checkAuth } from "../../middleware/checkAuth";
 import { Role } from "../../../generated/prisma/enums";
+import { multerUpload } from "@/app/config/multer.config";
+import { validateRequest } from "@/app/middleware/validateRequest";
+import { updateMemberZodSchema } from "./member.interface";
 
 const router = express.Router();
 
@@ -9,6 +12,7 @@ const router = express.Router();
 router.use(checkAuth(Role.MEMBER, Role.MODERATOR, Role.ADMIN, Role.SUPER_ADMIN));
 
 router.get("/profile", MemberController.getMyProfile);
+router.patch("/profile", multerUpload.single('file'), validateRequest(updateMemberZodSchema), MemberController.updateMyProfile);
 router.get("/purchased-ideas", MemberController.getMyPurchasedIdeas);
 router.get("/followers", MemberController.getMyFollowers);
 router.get("/following", MemberController.getMyFollowing);

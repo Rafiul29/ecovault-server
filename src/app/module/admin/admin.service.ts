@@ -75,6 +75,17 @@ const updateAdmin = async (id: string, payload: IUpdateAdminPayload) => {
         }
     })
 
+    const updatedUser = await prisma.user.update({
+        where: {
+            id: isAdminExist.userId,
+        },
+        data: {
+            name: updatedAdmin.name,
+            image: updatedAdmin.profilePhoto,
+
+        }
+    })
+
     return updatedAdmin;
 }
 

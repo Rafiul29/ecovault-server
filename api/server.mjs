@@ -1474,7 +1474,6 @@ var changePassword2 = catchAsync(
   async (req, res) => {
     const payload = req.body;
     const betterAuthSessionToken = req.cookies["better-auth.session_token"];
-    console.log({ betterAuthSessionToken });
     const result = await AuthService.changePassword(payload, betterAuthSessionToken);
     const { accessToken, refreshToken, token } = result;
     tokenUtils.setAccessTokenCookie(res, accessToken);
@@ -5133,7 +5132,7 @@ var moderatorIncludeConfig = {
 var getMyProfile = async (userId) => {
   const profile = await prisma.moderator.findUnique({
     where: { userId },
-    include: { user: { select: { id: true, email: true, image: true, role: true, status: true } } }
+    include: { user: { select: { id: true, name: true, email: true, image: true, role: true, status: true } } }
   });
   if (!profile) {
     throw new AppError_default(httpStatus18.NOT_FOUND, "Moderator profile not found");
@@ -5155,7 +5154,10 @@ var updateMyProfile = async (userId, payload) => {
     if (payload.name) {
       await tx.user.update({
         where: { id: userId },
-        data: { name: payload.name }
+        data: {
+          name: payload.name,
+          ...payload.image !== void 0 && { image: payload.image }
+        }
       });
     }
     return updatedMod;
@@ -5194,6 +5196,9 @@ var ModeratorService = {
 var getMyProfile2 = catchAsync(async (req, res) => {
   const userId = req.user.userId;
   const profile = await ModeratorService.getMyProfile(userId);
+  if (!profile) {
+    throw new AppError_default(httpStatus19.NOT_FOUND, "Moderator profile not found");
+  }
   sendResponse(res, {
     httpStatusCode: httpStatus19.OK,
     success: true,
@@ -5203,7 +5208,14 @@ var getMyProfile2 = catchAsync(async (req, res) => {
 });
 var updateMyProfile2 = catchAsync(async (req, res) => {
   const userId = req.user.userId;
-  const updatedProfile = await ModeratorService.updateMyProfile(userId, req.body);
+  const payload = {
+    ...req.body
+  };
+  if (req.file) {
+    payload.image = req.file.path;
+  }
+  console.log("payload", payload);
+  const updatedProfile = await ModeratorService.updateMyProfile(userId, payload);
   sendResponse(res, {
     httpStatusCode: httpStatus19.OK,
     success: true,
@@ -5240,16 +5252,25 @@ var ModeratorController = {
 
 // src/app/module/moderator/moderator.validator.ts
 import { z as z12 } from "zod";
+var handleJsonString = (val) => {
+  if (typeof val === "string") {
+    try {
+      return JSON.parse(val);
+    } catch {
+      return val;
+    }
+  }
+  return val;
+};
 var updateModeratorZodSchema = z12.object({
-  body: z12.object({
-    name: z12.string().optional(),
-    profilePhoto: z12.string().url().optional(),
-    contactNumber: z12.string().optional(),
-    bio: z12.string().optional(),
-    address: z12.string().optional(),
-    phoneNumber: z12.string().optional(),
-    socialLinks: z12.record(z12.string(), z12.string()).optional()
-  })
+  name: z12.string().optional(),
+  image: z12.string().optional(),
+  profilePhoto: z12.string().url().optional(),
+  contactNumber: z12.string().optional(),
+  bio: z12.string().optional(),
+  address: z12.string().optional(),
+  phoneNumber: z12.string().optional(),
+  socialLinks: z12.preprocess(handleJsonString, z12.record(z12.string(), z12.string()).optional())
 });
 
 // src/app/module/moderator/moderator.route.ts
@@ -5261,6 +5282,7 @@ router12.get(
 );
 router12.patch(
   "/profile",
+  multerUpload.single("file"),
   checkAuth(Role.MODERATOR),
   validateRequest(updateModeratorZodSchema),
   ModeratorController.updateMyProfile

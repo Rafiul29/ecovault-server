@@ -51,6 +51,11 @@ const updateAdmin = catchAsync(
     async (req: Request, res: Response) => {
         const { id } = req.params;
         const payload = req.body;
+        console.log("Payload", payload)
+
+        if (req.file) {
+            payload.profilePhoto = req.file.path;
+        }
 
         const updatedAdmin = await AdminService.updateAdmin(String(id), payload);
 

@@ -4,6 +4,7 @@ import { checkAuth } from "../../middleware/checkAuth";
 import { validateRequest } from "../../middleware/validateRequest";
 import { AdminController } from "./admin.controller";
 import { updateAdminZodSchema } from "./admin.validation";
+import { multerUpload } from "@/app/config/multer.config";
 
 const router = Router();
 
@@ -21,7 +22,9 @@ router.get("/public-profile/:id",
 
 router.patch("/:id",
     checkAuth(Role.SUPER_ADMIN),
+    multerUpload.single('file'),
     validateRequest(updateAdminZodSchema), AdminController.updateAdmin);
+
 router.delete("/:id",
     checkAuth(Role.SUPER_ADMIN),
     AdminController.deleteAdmin);

@@ -19,6 +19,24 @@ const getMyProfile = async (userId: string) => {
     return user;
 };
 
+const updateMyProfile = async (userId: string, payload: any) => {
+    const user = await prisma.user.findUnique({
+        where: { id: userId, isDeleted: false },
+    });
+
+    if (!user) {
+        throw new AppError(httpStatus.NOT_FOUND, "User profile not found");
+    }
+
+    const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: payload,
+        include: memberIncludeConfig
+    });
+
+    return updatedUser;
+};
+
 const getMyPurchasedIdeas = async (userId: string) => {
     return await prisma.ideaPurchase.findMany({
         where: { userId },
@@ -167,6 +185,7 @@ const getAllMembers = async (queryParams: IQueryParams) => {
 
 export const MemberService = {
     getMyProfile,
+    updateMyProfile,
     getMyPurchasedIdeas,
     getMyFollowers,
     getMyFollowing,
