@@ -1,9 +1,9 @@
-import { Prisma } from "@/generated/prisma/client";
+import { Prisma } from "../../../generated/prisma/client";
 
-export const moderatorSearchableFields = ['name', 'email'];
-export const moderatorFilterableFields = ['isActive', 'user.status', 'isDeleted'];
+export const adminSearchableFields = ['name', 'email'];
+export const adminFilterableFields = ['user.status', 'isDeleted'];
 
-export const moderatorIncludeConfig: Prisma.ModeratorInclude = {
+export const adminIncludeConfig: Prisma.AdminInclude = {
     user: {
         select: {
             id: true,
@@ -12,7 +12,7 @@ export const moderatorIncludeConfig: Prisma.ModeratorInclude = {
             role: true,
             createdAt: true,
             updatedAt: true,
-            _count: {
+             _count: {
                 select: {
                     ideas: true,
                     purchasedIdeas: true,

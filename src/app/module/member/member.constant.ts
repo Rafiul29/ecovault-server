@@ -1,7 +1,7 @@
 import { Prisma } from "@/generated/prisma/client";
 
 export const memberSearchableFields = ['name', 'email'];
-export const memberFilterableFields = ['role', 'status', 'isDeleted'];
+export const memberFilterableFields = ['role', 'user.status', 'isDeleted'];
 
 export const memberIncludeConfig: Prisma.UserInclude = {
     _count: {

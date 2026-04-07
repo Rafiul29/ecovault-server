@@ -4,7 +4,7 @@ import AppError from "../../errorHelpers/AppError";
 import { IModeratorPayload } from "./moderator.interface";
 import { QueryBuilder } from "../../utils/QueryBuilder";
 import { IQueryParams } from "../../interfaces/query.interface";
-import { moderatorIncludeConfig } from "./moderator.constant";
+import { moderatorFilterableFields, moderatorIncludeConfig, moderatorSearchableFields } from "./moderator.constant";
 
 const getMyProfile = async (userId: string) => {
   const profile = await prisma.moderator.findUnique({
@@ -60,8 +60,8 @@ const getAllModerators = async (queryParams: IQueryParams) => {
     prisma.moderator,
     queryParams,
     {
-      searchableFields: ['name', 'user.email'],
-      filterableFields: ['isActive', 'user.status']
+      searchableFields: moderatorSearchableFields,
+      filterableFields: moderatorFilterableFields
     }
   );
 

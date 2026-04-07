@@ -4,18 +4,16 @@ import { catchAsync } from "../../shared/catchAsync";
 import { sendResponse } from "../../shared/sendResponse";
 import { AdminService } from "./admin.service";
 
-const getAllAdmins = catchAsync(
-    async (req: Request, res: Response) => {
-        const result = await AdminService.getAllAdmins();
-
-        sendResponse(res, {
-            httpStatusCode: status.OK,
-            success: true,
-            message: "Admins fetched successfully",
-            data: result,
-        })
-    }
-)
+const getAllAdmins = catchAsync(async (req: Request, res: Response) => {
+    const result = await AdminService.getAllAdmins(req.query as any);
+    sendResponse(res, {
+        httpStatusCode: status.OK,
+        success: true,
+        message: "Admins fetched successfully",
+        data: result.data,
+        meta: result.meta,
+    });
+});
 
 const getAdminById = catchAsync(
     async (req: Request, res: Response) => {
@@ -47,17 +45,35 @@ const getPublicProfileByUserId = catchAsync(
     }
 )
 
-const updateAdmin = catchAsync(
+const createAdmin = catchAsync(
     async (req: Request, res: Response) => {
-        const { id } = req.params;
         const payload = req.body;
-        console.log("Payload", payload)
 
         if (req.file) {
             payload.profilePhoto = req.file.path;
         }
 
-        const updatedAdmin = await AdminService.updateAdmin(String(id), payload);
+        const result = await AdminService.createAdmin(payload);
+
+        sendResponse(res, {
+            httpStatusCode: status.CREATED,
+            success: true,
+            message: "Admin created successfully",
+            data: result,
+        })
+    }
+)
+
+const updateAdmin = catchAsync(
+    async (req: Request, res: Response) => {
+        const { id } = req.params;
+        const targetId = id || req.user.userId;
+        const payload = req.body;
+
+        if (req.file) {
+            payload.profilePhoto = req.file.path;
+        }
+        const updatedAdmin = await AdminService.updateAdmin(String(targetId), payload, req.user);
 
         sendResponse(res, {
             httpStatusCode: status.OK,
@@ -150,6 +166,7 @@ const deleteUserAccount = catchAsync(async (req: Request, res: Response) => {
 
 export const AdminController = {
     getAllAdmins,
+    createAdmin,
     updateAdmin,
     deleteAdmin,
     getAdminById,

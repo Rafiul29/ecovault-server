@@ -8,7 +8,7 @@ import { createCommentZodSchema, updateCommentZodSchema, commentReactionZodSchem
 const router = express.Router();
 
 router.get("/idea/:ideaId", CommentController.getCommentsByIdea);
-router.get("/", checkAuth(Role.ADMIN, Role.SUPER_ADMIN), CommentController.getAllComments);
+router.get("/", CommentController.getAllComments);
 
 router.post(
   "/",

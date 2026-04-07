@@ -126,7 +126,7 @@ export class QueryBuilder<
                 return;
             }
 
-            const isAllowedField = !filterableFields || filterableFields.length === 0 || filterableFields.includes(key);
+            const isAllowedField = !filterableFields || filterableFields.length === 0 || filterableFields.some(f => f === key || f.startsWith(key + '.'));
 
 
             if (key.includes(".")) {

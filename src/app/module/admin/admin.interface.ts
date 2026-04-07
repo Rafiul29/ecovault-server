@@ -1,19 +1,23 @@
 import { Role, UserStatus } from "../../../generated/prisma/enums";
 
 export interface IUpdateAdminPayload {
-    admin?: {
-        name?: string;
-        profilePhoto?: string;
-        contactNumber?: string;
-    }
+    name?: string;
+    profilePhoto?: string;
+    contactNumber?: string;
+}
+
+export interface ICreateAdminPayload extends Omit<IUpdateAdminPayload, 'name'> {
+    name: string;
+    email: string;
+    password: string;
 }
 
 export interface IChangeUserStatusPayload {
-    userId : string;
-    userStatus : UserStatus;
+    userId: string;
+    userStatus: UserStatus;
 }
 
 export interface IChangeUserRolePayload {
-    userId : string;
-    role : Role;
+    userId: string;
+    role: Role;
 }

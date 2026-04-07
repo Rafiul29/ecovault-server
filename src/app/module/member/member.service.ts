@@ -1,7 +1,7 @@
 import httpStatus from "http-status";
 import AppError from "../../errorHelpers/AppError";
 import { prisma } from "../../lib/prisma";
-import { memberIncludeConfig } from "./member.constant";
+import { memberFilterableFields, memberIncludeConfig, memberSearchableFields } from "./member.constant";
 import { QueryBuilder } from "../../utils/QueryBuilder";
 import { IQueryParams } from "../../interfaces/query.interface";
 import { Role } from "../../../generated/prisma/enums";
@@ -166,8 +166,8 @@ const getAllMembers = async (queryParams: IQueryParams) => {
 
         queryParams,
         {
-            searchableFields: ['name', 'email'],
-            filterableFields: ['role', 'status', 'isDeleted']
+            searchableFields: memberSearchableFields,
+            filterableFields: memberFilterableFields
         }
     );
 
@@ -178,7 +178,7 @@ const getAllMembers = async (queryParams: IQueryParams) => {
         .sort()
         .include(memberIncludeConfig)
         .where({
-            role: Role.MEMBER  // Only get users with MEMBER role
+            role: Role.MEMBER
         })
         .execute();
 };

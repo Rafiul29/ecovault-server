@@ -3,7 +3,7 @@ import { Role } from "../../../generated/prisma/enums";
 import { checkAuth } from "../../middleware/checkAuth";
 import { validateRequest } from "../../middleware/validateRequest";
 import { AdminController } from "./admin.controller";
-import { updateAdminZodSchema } from "./admin.validation";
+import { createAdminZodSchema, updateAdminZodSchema } from "./admin.validation";
 import { multerUpload } from "@/app/config/multer.config";
 
 const router = Router();
@@ -11,6 +11,14 @@ const router = Router();
 router.get("/",
     checkAuth(Role.SUPER_ADMIN),
     AdminController.getAllAdmins);
+
+router.post("/",
+    checkAuth(Role.SUPER_ADMIN),
+    multerUpload.single('file'),
+    validateRequest(createAdminZodSchema),
+    AdminController.createAdmin);
+
+
 router.get("/:id",
     checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
     AdminController.getAdminById);
@@ -19,11 +27,17 @@ router.get("/:id",
 router.get("/public-profile/:id",
     AdminController.getPublicProfileByUserId);
 
+router.patch("/profile",
+    checkAuth(Role.SUPER_ADMIN, Role.ADMIN),
+    multerUpload.single('file'),
+    validateRequest(updateAdminZodSchema),
+    AdminController.updateAdmin);
 
 router.patch("/:id",
     checkAuth(Role.SUPER_ADMIN),
     multerUpload.single('file'),
-    validateRequest(updateAdminZodSchema), AdminController.updateAdmin);
+    validateRequest(updateAdminZodSchema),
+    AdminController.updateAdmin);
 
 router.delete("/:id",
     checkAuth(Role.SUPER_ADMIN),

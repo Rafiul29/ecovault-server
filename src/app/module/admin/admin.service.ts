@@ -3,16 +3,99 @@ import { Role, UserStatus } from "../../../generated/prisma/enums";
 import AppError from "../../errorHelpers/AppError";
 import { IRequestUser } from "../../interfaces/requestUser.interface";
 import { prisma } from "../../lib/prisma";
-import { IChangeUserRolePayload, IChangeUserStatusPayload, IUpdateAdminPayload } from "./admin.interface";
+import { IChangeUserRolePayload, IChangeUserStatusPayload, ICreateAdminPayload, IUpdateAdminPayload } from "./admin.interface";
+import { adminFilterableFields, adminIncludeConfig, adminSearchableFields } from "./admin.constant";
+import { auth } from "../../lib/auth";
+import { IQueryParams } from "../../interfaces/query.interface";
+import { QueryBuilder } from "../../utils/QueryBuilder";
 
-const getAllAdmins = async () => {
-    const admins = await prisma.admin.findMany({
-        include: {
-            user: true,
+const getAllAdmins = async (queryParams: IQueryParams) => {
+    const queryBuilder = new QueryBuilder(
+        prisma.admin,
+        queryParams,
+        {
+            searchableFields: adminSearchableFields,
+            filterableFields: adminFilterableFields
         }
-    })
-    return admins;
+    );
+
+    return await queryBuilder
+        .search()
+        .filter()
+        .paginate()
+        .sort()
+        .include(adminIncludeConfig)
+        .execute();
 }
+
+const createAdmin = async (payload: ICreateAdminPayload): Promise<any> => {
+    const { name, email, password, contactNumber, profilePhoto } = payload;
+
+    // ১. প্রথমে চেক করুন ইউজার আগে থেকে আছে কি না
+    const isUserExists = await prisma.user.findUnique({
+        where: { email },
+    });
+
+    if (isUserExists) {
+        throw new AppError(httpStatus.BAD_REQUEST, "User with this email already exists");
+    }
+
+    // ২. Better-Auth এ ইউজার তৈরি করা (এটি ডেটাবেজের বাইরে একটি API কল)
+    const data = await auth.api.signUpEmail({
+        body: {
+            name,
+            email,
+            password,
+            role: Role.ADMIN,
+        },
+    });
+
+    if (!data?.user) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Failed to create user in auth system");
+    }
+
+    try {
+        // ৩. Prisma Transaction শুরু
+        const result = await prisma.$transaction(async (tx) => {
+
+            // এডমিন প্রোফাইল তৈরি
+            const admin = await tx.admin.create({
+                data: {
+                    userId: data.user.id,
+                    name,
+                    email,
+                    contactNumber: contactNumber || null,
+                    profilePhoto: profilePhoto || null,
+                },
+                include: {
+                    user: true
+                }
+            });
+
+            // ইউজার স্ট্যাটাস আপডেট
+            await tx.user.update({
+                where: { id: data.user.id },
+                data: {
+                    emailVerified: true,
+                    status: UserStatus.ACTIVE,
+                }
+            });
+
+            return admin;
+        });
+
+        return result;
+
+    } catch (error) {
+        /* ৪. রোলব্যাক লজিক: 
+           যদি ট্রানজেকশনের ভেতরে কোনো এরর হয়, তবে Prisma অটোমেটিক 
+           ডেটাবেজ রোলব্যাক করবে। কিন্তু Better-Auth থেকে ইউজারটি ডিলিট করতে হবে।
+        */
+        await prisma.user.delete({ where: { id: data.user.id } });
+
+        throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Transaction failed, user rolled back");
+    }
+};
 
 const getAdminById = async (id: string) => {
     const admin = await prisma.admin.findUnique({
@@ -51,42 +134,83 @@ const getPublicProfileByUserId = async (userId: string) => {
     return user;
 };
 
-const updateAdmin = async (id: string, payload: IUpdateAdminPayload) => {
-    //TODO: Validate who is updating the admin user. Only super admin can update admin user and only super admin can update super admin user but admin user cannot update super admin user
-
+const updateAdmin = async (id: string, payload: IUpdateAdminPayload, requester: IRequestUser) => {
+    // 1. Fetch the target admin and their user role
     const isAdminExist = await prisma.admin.findUnique({
         where: {
-            id,
+            userId: id,
+        },
+        include: {
+            user: true
         }
-    })
+    });
 
     if (!isAdminExist) {
-        throw new AppError(httpStatus.NOT_FOUND, "Admin Or Super Admin not found");
+        throw new AppError(httpStatus.NOT_FOUND, "Admin Or Super Admin record not found");
     }
 
-    const { admin } = payload;
+    console.log("payload", payload)
 
-    const updatedAdmin = await prisma.admin.update({
-        where: {
-            id,
-        },
-        data: {
-            ...admin,
+    // 2. Validate RBAC logic
+    // - Only Super Admin can update Admin users
+    // - Only Super Admin can update Super Admin users
+    // - Admin user cannot update Super Admin user
+
+    if (requester.role === Role.ADMIN) {
+        if (isAdminExist.user.role === Role.SUPER_ADMIN) {
+            throw new AppError(httpStatus.FORBIDDEN, "Admin cannot update a Super Admin profile");
         }
-    })
 
-    const updatedUser = await prisma.user.update({
-        where: {
-            id: isAdminExist.userId,
-        },
-        data: {
-            name: updatedAdmin.name,
-            image: updatedAdmin.profilePhoto,
-
+        // If the instruction "Only super admin can update admin user" is literal:
+        if (isAdminExist.userId !== requester.userId) {
+            throw new AppError(httpStatus.FORBIDDEN, "Only Super Admin can update other Admin accounts");
         }
-    })
+        // Allow self-update for Admin role if it's their own profile, 
+        // but if the requirement meant strictly ONLY super admin even for self, block it here.
+        // Given the context of /profile, let's allow self-update but block others.
+    }
 
-    return updatedAdmin;
+    if (requester.role === Role.SUPER_ADMIN) {
+        // Super Admin can update anyone
+    } else if (requester.role !== Role.ADMIN) {
+        // Any other role trying to call this (should be blocked by checkAuth middleware usually)
+        throw new AppError(httpStatus.FORBIDDEN, "Unauthorized to update admin profile");
+    }
+
+
+
+    // Use transaction to ensure both updates succeed
+    const result = await prisma.$transaction(async (tx) => {
+        const updatedAdmin = await tx.admin.update({
+            where: {
+                userId: id, // id passed from controller is the userId
+            },
+            data: {
+                ...payload
+            }
+        });
+
+        await tx.user.update({
+            where: {
+                id: isAdminExist.userId,
+            },
+            data: {
+                name: updatedAdmin.name,
+                image: updatedAdmin.profilePhoto,
+            }
+        });
+
+        return await prisma.admin.findUnique({
+            where: {
+                userId: id,
+            },
+            include: {
+                user: true
+            }
+        });;
+    });
+
+    return result;
 }
 
 //soft delete admin user by setting isDeleted to true and also delete the user session and account
@@ -245,12 +369,9 @@ const changeUserRole = async (user: IRequestUser, payload: IChangeUserRolePayloa
 
 }
 
-import { IQueryParams } from "../../interfaces/query.interface";
-import { QueryBuilder } from "../../utils/QueryBuilder";
-
 const getAllUsers = async (queryParams: IQueryParams) => {
     const userSearchableFields = ['name', 'email'];
-    const userFilterableFields = ['role', 'status', 'isDeleted'];
+    const userFilterableFields = ['role', 'user.status', 'isDeleted'];
 
     const userQuery = new QueryBuilder(prisma.user, queryParams, {
         searchableFields: userSearchableFields,
@@ -335,6 +456,7 @@ const deleteUserAccount = async (id: string, requester: IRequestUser) => {
 
 export const AdminService = {
     getAllAdmins,
+    createAdmin,
     getAdminById,
     getPublicProfileByUserId,
     updateAdmin,
