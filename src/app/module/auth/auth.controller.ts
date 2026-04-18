@@ -245,6 +245,7 @@ const googleLoginSuccess = catchAsync(async (req: Request, res: Response) => {
 })
 
 const handleOAuthError = catchAsync((req: Request, res: Response) => {
+    console.log(req.query)
     const error = req.query.error as string || "oauth_failed";
     res.redirect(`${envVars.FRONTEND_URL}/login?error=${error}`);
 })

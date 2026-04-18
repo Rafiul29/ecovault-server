@@ -4,6 +4,7 @@ import z from "zod";
 export const validateRequest = (zodSchema: z.ZodObject) => {
   return (req: Request, res: Response, next: NextFunction) => {
 
+    console.log("req.body", req.body)
     // Log original req.body to see what's actually there
     console.log("Original req.body keys:", Object.keys(req.body || {}));
 
@@ -18,8 +19,9 @@ export const validateRequest = (zodSchema: z.ZodObject) => {
         // If it's not valid JSON, we might want to still try to use the raw body
       }
     }
-
+    console.log("req.body", req.body)
     const parsedResult = zodSchema.safeParse(req.body);
+    console.log("parsedResult", parsedResult)
 
     if (!parsedResult.success) {
       return next(parsedResult.error);
@@ -27,6 +29,7 @@ export const validateRequest = (zodSchema: z.ZodObject) => {
 
     //sanitizing the data
     req.body = parsedResult.data;
+    console.log("req.body", req.body)
 
     next();
   };

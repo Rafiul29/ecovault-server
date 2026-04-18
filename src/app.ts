@@ -17,9 +17,10 @@ app.set('query parser', (str: string) => qs.parse(str));
 app.set("view engine", 'ejs')
 app.set("views", path.resolve(process.cwd(), `src/app/templates`))
 
-
 const allowedOrigins: string[] = [
   "http://localhost:3000",
+  "http://localhost:5000",
+  "https://ecovault-server.vercel.app",
   envVars.FRONTEND_URL, "https://ecovault-client.vercel.app"
 ].filter(Boolean);
 

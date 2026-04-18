@@ -3,7 +3,7 @@ import { Role } from "../../../generated/prisma/enums";
 import { checkAuth } from "../../middleware/checkAuth";
 import { validateRequest } from "../../middleware/validateRequest";
 import { AdminController } from "./admin.controller";
-import { createAdminZodSchema, updateAdminZodSchema } from "./admin.validation";
+import { changeUserRoleZodSchema, changeUserStatusZodSchema, createAdminZodSchema, updateAdminZodSchema } from "./admin.validation";
 import { multerUpload } from "@/app/config/multer.config";
 
 const router = Router();
@@ -45,9 +45,12 @@ router.delete("/:id",
 
 router.patch("/change-user-status",
     checkAuth(Role.SUPER_ADMIN, Role.ADMIN),
+    validateRequest(changeUserStatusZodSchema),
     AdminController.changeUserStatus);
+
 router.patch("/change-user-role",
     checkAuth(Role.SUPER_ADMIN),
+    validateRequest(changeUserRoleZodSchema),
     AdminController.changeUserRole);
 
 router.get("/users",

@@ -31,7 +31,6 @@ const getAllAdmins = async (queryParams: IQueryParams) => {
 const createAdmin = async (payload: ICreateAdminPayload): Promise<any> => {
     const { name, email, password, contactNumber, profilePhoto } = payload;
 
-    // ১. প্রথমে চেক করুন ইউজার আগে থেকে আছে কি না
     const isUserExists = await prisma.user.findUnique({
         where: { email },
     });
@@ -40,7 +39,6 @@ const createAdmin = async (payload: ICreateAdminPayload): Promise<any> => {
         throw new AppError(httpStatus.BAD_REQUEST, "User with this email already exists");
     }
 
-    // ২. Better-Auth এ ইউজার তৈরি করা (এটি ডেটাবেজের বাইরে একটি API কল)
     const data = await auth.api.signUpEmail({
         body: {
             name,
@@ -58,7 +56,6 @@ const createAdmin = async (payload: ICreateAdminPayload): Promise<any> => {
         // ৩. Prisma Transaction শুরু
         const result = await prisma.$transaction(async (tx) => {
 
-            // এডমিন প্রোফাইল তৈরি
             const admin = await tx.admin.create({
                 data: {
                     userId: data.user.id,
@@ -72,7 +69,6 @@ const createAdmin = async (payload: ICreateAdminPayload): Promise<any> => {
                 }
             });
 
-            // ইউজার স্ট্যাটাস আপডেট
             await tx.user.update({
                 where: { id: data.user.id },
                 data: {
@@ -87,10 +83,7 @@ const createAdmin = async (payload: ICreateAdminPayload): Promise<any> => {
         return result;
 
     } catch (error) {
-        /* ৪. রোলব্যাক লজিক: 
-           যদি ট্রানজেকশনের ভেতরে কোনো এরর হয়, তবে Prisma অটোমেটিক 
-           ডেটাবেজ রোলব্যাক করবে। কিন্তু Better-Auth থেকে ইউজারটি ডিলিট করতে হবে।
-        */
+
         await prisma.user.delete({ where: { id: data.user.id } });
 
         throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Transaction failed, user rolled back");
@@ -272,6 +265,10 @@ const changeUserStatus = async (user: IRequestUser, payload: IChangeUserStatusPa
 
     // 2. Admin can change the status of doctor and patient. Except himself. He cannot change his own status. He cannot change the status of super admin and other admin user.
 
+    console.log("user", user)
+    console.log("payload", payload)
+
+
     const isAdminExists = await prisma.admin.findUniqueOrThrow({
         where: {
             email: user.email
@@ -280,6 +277,8 @@ const changeUserStatus = async (user: IRequestUser, payload: IChangeUserStatusPa
             user: true,
         }
     });
+
+    console.log("isAdminExists changeUserStatus", isAdminExists)
 
     const { userId, userStatus } = payload;
 
@@ -326,6 +325,9 @@ const changeUserRole = async (user: IRequestUser, payload: IChangeUserRolePayloa
 
     // 3. Role of Patient and Doctor user cannot be changed by anyone. If needed, they have to be deleted and recreated with new role.
 
+    console.log("user", user)
+    console.log("payload", payload)
+
     const isSuperAdminExists = await prisma.admin.findFirstOrThrow({
         where: {
             email: user.email,
@@ -337,6 +339,7 @@ const changeUserRole = async (user: IRequestUser, payload: IChangeUserRolePayloa
             user: true,
         }
     });
+    console.log("isSuperAdminExists changeUserRole", isSuperAdminExists)
 
     const { userId, role } = payload;
 

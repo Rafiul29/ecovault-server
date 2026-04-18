@@ -1,3 +1,4 @@
+import { Role, UserStatus } from "@/generated/prisma/enums";
 import z from "zod";
 
 export const updateAdminZodSchema = z.object({
@@ -12,4 +13,14 @@ export const createAdminZodSchema = z.object({
     password: z.string().min(8, "Password must be at least 8 characters"),
     profilePhoto: z.string().optional(),
     contactNumber: z.string().min(11, "Contact number must be at least 11 characters").max(14, "Contact number must be at most 15 characters").optional(),
+});
+
+export const changeUserStatusZodSchema = z.object({
+    userId: z.string(),
+    status: z.enum([UserStatus.ACTIVE, UserStatus.BLOCKED, UserStatus.DELETED]),
+});
+
+export const changeUserRoleZodSchema = z.object({
+    userId: z.string(),
+    role: z.enum([Role.ADMIN, Role.MODERATOR, Role.SUPER_ADMIN, Role.MEMBER]),
 });

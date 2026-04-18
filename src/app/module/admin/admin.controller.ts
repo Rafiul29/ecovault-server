@@ -105,6 +105,7 @@ const changeUserStatus = catchAsync(
     async (req: Request, res: Response) => {
         const user = req.user;
         const payload = req.body;
+        console.log("Payload in controller", req.user, payload);
         const result = await AdminService.changeUserStatus(user, payload);
         sendResponse(res, {
             httpStatusCode: status.OK,
@@ -119,6 +120,8 @@ const changeUserRole = catchAsync(
     async (req: Request, res: Response) => {
         const user = req.user;
         const payload = req.body;
+        console.log("Payload in changeUserRole", req.user, payload);
+
         const result = await AdminService.changeUserRole(user, payload);
         sendResponse(res, {
             httpStatusCode: status.OK,

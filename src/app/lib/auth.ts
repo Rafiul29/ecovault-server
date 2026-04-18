@@ -204,13 +204,13 @@ export const auth = betterAuth({
         signIn: `${envVars.BETTER_AUTH_URL}/api/v1/auth/google/success`,
     },
 
-    trustedOrigins: [process.env.BETTER_AUTH_URL || "http://localhost:5000", "https://ecovault-client.vercel.app", envVars.FRONTEND_URL],
+    trustedOrigins: [process.env.BETTER_AUTH_URL || "https://ecovault-server.vercel.app", "http://localhost:5000", "https://ecovault-client.vercel.app", envVars.FRONTEND_URL],
 
 
     advanced: {
-        // disableCSRFCheck: true,
-        // cookiePrefix: "better-auth",
-        useSecureCookies: process.env.NODE_ENV === "production",
+        disableCSRFCheck: true,
+        cookiePrefix: "better-auth",
+        useSecureCookies: false,
         crossSubDomainCookies: {
             enabled: false,
         },

@@ -56,6 +56,8 @@ export const checkAuth = (...authRoles: Role[]) => async (req: Request, res: Res
             }
         }
 
+        console.log("User from session token:", user);
+
         // 2. Fallback Authentication: Access Token (JWT)
         if (!user && accessToken) {
             const verifiedToken = jwtUtils.verifyToken(accessToken, envVars.ACCESS_TOKEN_SECRET);

@@ -832,11 +832,11 @@ var auth = betterAuth({
   redirectURLs: {
     signIn: `${envVars.BETTER_AUTH_URL}/api/v1/auth/google/success`
   },
-  trustedOrigins: [process.env.BETTER_AUTH_URL || "http://localhost:5000", "https://ecovault-client.vercel.app", envVars.FRONTEND_URL],
+  trustedOrigins: [process.env.BETTER_AUTH_URL || "https://ecovault-server.vercel.app", "http://localhost:5000", "https://ecovault-client.vercel.app", envVars.FRONTEND_URL],
   advanced: {
-    // disableCSRFCheck: true,
-    // cookiePrefix: "better-auth",
-    useSecureCookies: process.env.NODE_ENV === "production",
+    disableCSRFCheck: true,
+    cookiePrefix: "better-auth",
+    useSecureCookies: false,
     crossSubDomainCookies: {
       enabled: false
     },
@@ -1582,6 +1582,7 @@ var googleLoginSuccess2 = catchAsync(async (req, res) => {
   res.redirect(`${envVars.FRONTEND_URL}${finalRedirectPath}`);
 });
 var handleOAuthError = catchAsync((req, res) => {
+  console.log(req.query);
   const error = req.query.error || "oauth_failed";
   res.redirect(`${envVars.FRONTEND_URL}/login?error=${error}`);
 });
@@ -1634,6 +1635,7 @@ var checkAuth = (...authRoles) => async (req, res, next) => {
         }
       }
     }
+    console.log("User from session token:", user);
     if (!user && accessToken) {
       const verifiedToken = jwtUtils.verifyToken(accessToken, envVars.ACCESS_TOKEN_SECRET);
       if (verifiedToken.success && verifiedToken.data) {
@@ -1671,6 +1673,7 @@ var checkAuth = (...authRoles) => async (req, res, next) => {
 // src/app/middleware/validateRequest.ts
 var validateRequest = (zodSchema) => {
   return (req, res, next) => {
+    console.log("req.body", req.body);
     console.log("Original req.body keys:", Object.keys(req.body || {}));
     const dataKey = Object.keys(req.body || {}).find((key) => key.trim() === "data");
     if (dataKey && req.body[dataKey]) {
@@ -1683,10 +1686,12 @@ var validateRequest = (zodSchema) => {
       }
     }
     const parsedResult = zodSchema.safeParse(req.body);
+    console.log("parsedResult", parsedResult);
     if (!parsedResult.success) {
       return next(parsedResult.error);
     }
     req.body = parsedResult.data;
+    console.log("req.body", req.body);
     next();
   };
 };
@@ -1751,6 +1756,31 @@ import status6 from "http-status";
 
 // src/app/module/admin/admin.service.ts
 import httpStatus from "http-status";
+
+// src/app/module/admin/admin.constant.ts
+var adminSearchableFields = ["name", "email"];
+var adminFilterableFields = ["user.status", "isDeleted"];
+var adminIncludeConfig = {
+  user: {
+    select: {
+      id: true,
+      email: true,
+      status: true,
+      role: true,
+      createdAt: true,
+      updatedAt: true,
+      _count: {
+        select: {
+          ideas: true,
+          purchasedIdeas: true,
+          followers: true,
+          following: true,
+          reviewsPerformed: true
+        }
+      }
+    }
+  }
+};
 
 // src/app/utils/QueryBuilder.ts
 var QueryBuilder = class {
@@ -1847,7 +1877,7 @@ var QueryBuilder = class {
       if (value === void 0 || value === "") {
         return;
       }
-      const isAllowedField = !filterableFields || filterableFields.length === 0 || filterableFields.includes(key);
+      const isAllowedField = !filterableFields || filterableFields.length === 0 || filterableFields.some((f) => f === key || f.startsWith(key + "."));
       if (key.includes(".")) {
         const parts = key.split(".");
         if (filterableFields && !filterableFields.includes(key)) {
@@ -2114,13 +2144,64 @@ var QueryBuilder = class {
 };
 
 // src/app/module/admin/admin.service.ts
-var getAllAdmins = async () => {
-  const admins = await prisma.admin.findMany({
-    include: {
-      user: true
+var getAllAdmins = async (queryParams) => {
+  const queryBuilder = new QueryBuilder(
+    prisma.admin,
+    queryParams,
+    {
+      searchableFields: adminSearchableFields,
+      filterableFields: adminFilterableFields
+    }
+  );
+  return await queryBuilder.search().filter().paginate().sort().include(adminIncludeConfig).execute();
+};
+var createAdmin = async (payload) => {
+  const { name, email, password, contactNumber, profilePhoto } = payload;
+  const isUserExists = await prisma.user.findUnique({
+    where: { email }
+  });
+  if (isUserExists) {
+    throw new AppError_default(httpStatus.BAD_REQUEST, "User with this email already exists");
+  }
+  const data = await auth.api.signUpEmail({
+    body: {
+      name,
+      email,
+      password,
+      role: Role.ADMIN
     }
   });
-  return admins;
+  if (!data?.user) {
+    throw new AppError_default(httpStatus.BAD_REQUEST, "Failed to create user in auth system");
+  }
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const admin = await tx.admin.create({
+        data: {
+          userId: data.user.id,
+          name,
+          email,
+          contactNumber: contactNumber || null,
+          profilePhoto: profilePhoto || null
+        },
+        include: {
+          user: true
+        }
+      });
+      await tx.user.update({
+        where: { id: data.user.id },
+        data: {
+          emailVerified: true,
+          status: UserStatus.ACTIVE
+        }
+      });
+      return admin;
+    });
+    return result;
+  } catch (error) {
+    await prisma.user.delete({ where: { id: data.user.id } });
+    throw new AppError_default(httpStatus.INTERNAL_SERVER_ERROR, "Transaction failed, user rolled back");
+  }
 };
 var getAdminById = async (id) => {
   const admin = await prisma.admin.findUnique({
@@ -2153,25 +2234,61 @@ var getPublicProfileByUserId = async (userId) => {
   }
   return user;
 };
-var updateAdmin = async (id, payload) => {
+var updateAdmin = async (id, payload, requester) => {
   const isAdminExist = await prisma.admin.findUnique({
     where: {
-      id
+      userId: id
+    },
+    include: {
+      user: true
     }
   });
   if (!isAdminExist) {
-    throw new AppError_default(httpStatus.NOT_FOUND, "Admin Or Super Admin not found");
+    throw new AppError_default(httpStatus.NOT_FOUND, "Admin Or Super Admin record not found");
   }
-  const { admin } = payload;
-  const updatedAdmin = await prisma.admin.update({
-    where: {
-      id
-    },
-    data: {
-      ...admin
+  console.log("payload", payload);
+  if (requester.role === Role.ADMIN) {
+    if (isAdminExist.user.role === Role.SUPER_ADMIN) {
+      throw new AppError_default(httpStatus.FORBIDDEN, "Admin cannot update a Super Admin profile");
     }
+    if (isAdminExist.userId !== requester.userId) {
+      throw new AppError_default(httpStatus.FORBIDDEN, "Only Super Admin can update other Admin accounts");
+    }
+  }
+  if (requester.role === Role.SUPER_ADMIN) {
+  } else if (requester.role !== Role.ADMIN) {
+    throw new AppError_default(httpStatus.FORBIDDEN, "Unauthorized to update admin profile");
+  }
+  const result = await prisma.$transaction(async (tx) => {
+    const updatedAdmin = await tx.admin.update({
+      where: {
+        userId: id
+        // id passed from controller is the userId
+      },
+      data: {
+        ...payload
+      }
+    });
+    await tx.user.update({
+      where: {
+        id: isAdminExist.userId
+      },
+      data: {
+        name: updatedAdmin.name,
+        image: updatedAdmin.profilePhoto
+      }
+    });
+    return await prisma.admin.findUnique({
+      where: {
+        userId: id
+      },
+      include: {
+        user: true
+      }
+    });
+    ;
   });
-  return updatedAdmin;
+  return result;
 };
 var deleteAdmin = async (id, user) => {
   const isAdminExist = await prisma.admin.findUnique({
@@ -2216,6 +2333,8 @@ var deleteAdmin = async (id, user) => {
   return result;
 };
 var changeUserStatus = async (user, payload) => {
+  console.log("user", user);
+  console.log("payload", payload);
   const isAdminExists = await prisma.admin.findUniqueOrThrow({
     where: {
       email: user.email
@@ -2224,6 +2343,7 @@ var changeUserStatus = async (user, payload) => {
       user: true
     }
   });
+  console.log("isAdminExists changeUserStatus", isAdminExists);
   const { userId, userStatus } = payload;
   const userToChangeStatus = await prisma.user.findUniqueOrThrow({
     where: {
@@ -2255,6 +2375,8 @@ var changeUserStatus = async (user, payload) => {
   return updatedUser;
 };
 var changeUserRole = async (user, payload) => {
+  console.log("user", user);
+  console.log("payload", payload);
   const isSuperAdminExists = await prisma.admin.findFirstOrThrow({
     where: {
       email: user.email,
@@ -2266,6 +2388,7 @@ var changeUserRole = async (user, payload) => {
       user: true
     }
   });
+  console.log("isSuperAdminExists changeUserRole", isSuperAdminExists);
   const { userId, role } = payload;
   const userToChangeRole = await prisma.user.findUniqueOrThrow({
     where: {
@@ -2291,7 +2414,7 @@ var changeUserRole = async (user, payload) => {
 };
 var getAllUsers = async (queryParams) => {
   const userSearchableFields = ["name", "email"];
-  const userFilterableFields = ["role", "status", "isDeleted"];
+  const userFilterableFields = ["role", "user.status", "isDeleted"];
   const userQuery = new QueryBuilder(prisma.user, queryParams, {
     searchableFields: userSearchableFields,
     filterableFields: userFilterableFields
@@ -2357,6 +2480,7 @@ var deleteUserAccount = async (id, requester) => {
 };
 var AdminService = {
   getAllAdmins,
+  createAdmin,
   getAdminById,
   getPublicProfileByUserId,
   updateAdmin,
@@ -2369,17 +2493,16 @@ var AdminService = {
 };
 
 // src/app/module/admin/admin.controller.ts
-var getAllAdmins2 = catchAsync(
-  async (req, res) => {
-    const result = await AdminService.getAllAdmins();
-    sendResponse(res, {
-      httpStatusCode: status6.OK,
-      success: true,
-      message: "Admins fetched successfully",
-      data: result
-    });
-  }
-);
+var getAllAdmins2 = catchAsync(async (req, res) => {
+  const result = await AdminService.getAllAdmins(req.query);
+  sendResponse(res, {
+    httpStatusCode: status6.OK,
+    success: true,
+    message: "Admins fetched successfully",
+    data: result.data,
+    meta: result.meta
+  });
+});
 var getAdminById2 = catchAsync(
   async (req, res) => {
     const { id } = req.params;
@@ -2404,11 +2527,30 @@ var getPublicProfileByUserId2 = catchAsync(
     });
   }
 );
+var createAdmin2 = catchAsync(
+  async (req, res) => {
+    const payload = req.body;
+    if (req.file) {
+      payload.profilePhoto = req.file.path;
+    }
+    const result = await AdminService.createAdmin(payload);
+    sendResponse(res, {
+      httpStatusCode: status6.CREATED,
+      success: true,
+      message: "Admin created successfully",
+      data: result
+    });
+  }
+);
 var updateAdmin2 = catchAsync(
   async (req, res) => {
     const { id } = req.params;
+    const targetId = id || req.user.userId;
     const payload = req.body;
-    const updatedAdmin = await AdminService.updateAdmin(String(id), payload);
+    if (req.file) {
+      payload.profilePhoto = req.file.path;
+    }
+    const updatedAdmin = await AdminService.updateAdmin(String(targetId), payload, req.user);
     sendResponse(res, {
       httpStatusCode: status6.OK,
       success: true,
@@ -2434,6 +2576,7 @@ var changeUserStatus2 = catchAsync(
   async (req, res) => {
     const user = req.user;
     const payload = req.body;
+    console.log("Payload in controller", req.user, payload);
     const result = await AdminService.changeUserStatus(user, payload);
     sendResponse(res, {
       httpStatusCode: status6.OK,
@@ -2447,6 +2590,7 @@ var changeUserRole2 = catchAsync(
   async (req, res) => {
     const user = req.user;
     const payload = req.body;
+    console.log("Payload in changeUserRole", req.user, payload);
     const result = await AdminService.changeUserRole(user, payload);
     sendResponse(res, {
       httpStatusCode: status6.OK,
@@ -2489,6 +2633,7 @@ var deleteUserAccount2 = catchAsync(async (req, res) => {
 });
 var AdminController = {
   getAllAdmins: getAllAdmins2,
+  createAdmin: createAdmin2,
   updateAdmin: updateAdmin2,
   deleteAdmin: deleteAdmin2,
   getAdminById: getAdminById2,
@@ -2503,99 +2648,28 @@ var AdminController = {
 // src/app/module/admin/admin.validation.ts
 import z2 from "zod";
 var updateAdminZodSchema = z2.object({
-  admin: z2.object({
-    name: z2.string("Name must be a string").optional(),
-    profilePhoto: z2.url("Profile photo must be a valid URL").optional(),
-    contactNumber: z2.string("Contact number must be a string").min(11, "Contact number must be at least 11 characters").max(14, "Contact number must be at most 15 characters").optional()
-  }).optional()
+  name: z2.string("Name must be a string").optional(),
+  profilePhoto: z2.string("Profile photo must be a valid URL").optional(),
+  contactNumber: z2.string("Contact number must be a string").min(11, "Contact number must be at least 11 characters").max(14, "Contact number must be at most 15 characters").optional()
+});
+var createAdminZodSchema = z2.object({
+  name: z2.string(),
+  email: z2.string().email(),
+  password: z2.string().min(8, "Password must be at least 8 characters"),
+  profilePhoto: z2.string().optional(),
+  contactNumber: z2.string().min(11, "Contact number must be at least 11 characters").max(14, "Contact number must be at most 15 characters").optional()
+});
+var changeUserStatusZodSchema = z2.object({
+  userId: z2.string(),
+  status: z2.enum([UserStatus.ACTIVE, UserStatus.BLOCKED, UserStatus.DELETED])
+});
+var changeUserRoleZodSchema = z2.object({
+  userId: z2.string(),
+  role: z2.enum([Role.ADMIN, Role.MODERATOR])
 });
 
-// src/app/module/admin/admin.route.ts
-var router2 = Router2();
-router2.get(
-  "/",
-  checkAuth(Role.SUPER_ADMIN),
-  AdminController.getAllAdmins
-);
-router2.get(
-  "/:id",
-  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
-  AdminController.getAdminById
-);
-router2.get(
-  "/public-profile/:id",
-  AdminController.getPublicProfileByUserId
-);
-router2.patch(
-  "/:id",
-  checkAuth(Role.SUPER_ADMIN),
-  validateRequest(updateAdminZodSchema),
-  AdminController.updateAdmin
-);
-router2.delete(
-  "/:id",
-  checkAuth(Role.SUPER_ADMIN),
-  AdminController.deleteAdmin
-);
-router2.patch(
-  "/change-user-status",
-  checkAuth(Role.SUPER_ADMIN, Role.ADMIN),
-  AdminController.changeUserStatus
-);
-router2.patch(
-  "/change-user-role",
-  checkAuth(Role.SUPER_ADMIN),
-  AdminController.changeUserRole
-);
-router2.get(
-  "/users",
-  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
-  AdminController.getAllUsers
-);
-router2.get(
-  "/users/:id",
-  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
-  AdminController.getUserById
-);
-router2.delete(
-  "/users/:id",
-  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
-  AdminController.deleteUserAccount
-);
-var AdminRoutes = router2;
-
-// src/app/module/category/category.route.ts
-import { Router as Router3 } from "express";
-
-// src/app/module/category/category.controller.ts
-import status8 from "http-status";
-
-// src/app/module/category/category.service.ts
-import httpStatus2 from "http-status";
-
-// src/app/utils/slug.ts
-var normalizeSlug = (value) => {
-  return value.trim().toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-+|-+$/g, "");
-};
-
-// src/app/module/category/category.constant.ts
-var categorySearchableFields = [
-  "id",
-  "name",
-  "slug",
-  "description"
-];
-var categoryFilterableFields = [
-  "id",
-  "name",
-  "slug",
-  "isActive",
-  "createdAt",
-  "updatedAt"
-];
-var categoryIncludeConfig = {
-  ideas: true
-};
+// src/app/config/multer.config.ts
+import { CloudinaryStorage } from "multer-storage-cloudinary";
 
 // src/app/config/cloudinary.config.ts
 import { v2 as cloudinary } from "cloudinary";
@@ -2649,6 +2723,130 @@ var deleteFileFromCloudinary = async (url) => {
   }
 };
 var cloudinaryUpload = cloudinary;
+
+// src/app/config/multer.config.ts
+import multer from "multer";
+var storage = new CloudinaryStorage({
+  cloudinary: cloudinaryUpload,
+  params: async (req, file) => {
+    console.log("FIle", req.file);
+    const originName = file.originalname;
+    const extension = originName.split(".").pop()?.toLocaleLowerCase();
+    const fileNameWithoutExtension = originName.split(".").slice(0, -1).join(".").toLocaleLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9\-]/g, "");
+    const uniqueName = Math.random().toString(36).substring(2) + "-" + Date.now() + "-" + fileNameWithoutExtension;
+    const folder = extension === "pdf" ? "pdfs" : "images";
+    return {
+      folder: `ecovault/${folder}`,
+      public_id: uniqueName,
+      resource_type: "auto"
+    };
+  }
+});
+var multerUpload = multer({ storage });
+
+// src/app/module/admin/admin.route.ts
+var router2 = Router2();
+router2.get(
+  "/",
+  checkAuth(Role.SUPER_ADMIN),
+  AdminController.getAllAdmins
+);
+router2.post(
+  "/",
+  checkAuth(Role.SUPER_ADMIN),
+  multerUpload.single("file"),
+  validateRequest(createAdminZodSchema),
+  AdminController.createAdmin
+);
+router2.get(
+  "/:id",
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  AdminController.getAdminById
+);
+router2.get(
+  "/public-profile/:id",
+  AdminController.getPublicProfileByUserId
+);
+router2.patch(
+  "/profile",
+  checkAuth(Role.SUPER_ADMIN, Role.ADMIN),
+  multerUpload.single("file"),
+  validateRequest(updateAdminZodSchema),
+  AdminController.updateAdmin
+);
+router2.patch(
+  "/:id",
+  checkAuth(Role.SUPER_ADMIN),
+  multerUpload.single("file"),
+  validateRequest(updateAdminZodSchema),
+  AdminController.updateAdmin
+);
+router2.delete(
+  "/:id",
+  checkAuth(Role.SUPER_ADMIN),
+  AdminController.deleteAdmin
+);
+router2.patch(
+  "/change-user-status",
+  checkAuth(Role.SUPER_ADMIN, Role.ADMIN),
+  validateRequest(changeUserStatusZodSchema),
+  AdminController.changeUserStatus
+);
+router2.patch(
+  "/change-user-role",
+  checkAuth(Role.SUPER_ADMIN),
+  validateRequest(changeUserRoleZodSchema),
+  AdminController.changeUserRole
+);
+router2.get(
+  "/users",
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  AdminController.getAllUsers
+);
+router2.get(
+  "/users/:id",
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  AdminController.getUserById
+);
+router2.delete(
+  "/users/:id",
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  AdminController.deleteUserAccount
+);
+var AdminRoutes = router2;
+
+// src/app/module/category/category.route.ts
+import { Router as Router3 } from "express";
+
+// src/app/module/category/category.controller.ts
+import status8 from "http-status";
+
+// src/app/module/category/category.service.ts
+import httpStatus2 from "http-status";
+
+// src/app/utils/slug.ts
+var normalizeSlug = (value) => {
+  return value.trim().toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-+|-+$/g, "");
+};
+
+// src/app/module/category/category.constant.ts
+var categorySearchableFields = [
+  "id",
+  "name",
+  "slug",
+  "description"
+];
+var categoryFilterableFields = [
+  "id",
+  "name",
+  "slug",
+  "isActive",
+  "createdAt",
+  "updatedAt"
+];
+var categoryIncludeConfig = {
+  ideas: true
+};
 
 // src/app/module/category/category.service.ts
 var getAllCategories = async (query) => {
@@ -2892,32 +3090,12 @@ var updateCategoryZodSchema = z3.object({
   isActive: z3.boolean().optional()
 });
 
-// src/app/config/multer.config.ts
-import { CloudinaryStorage } from "multer-storage-cloudinary";
-import multer from "multer";
-var storage = new CloudinaryStorage({
-  cloudinary: cloudinaryUpload,
-  params: async (req, file) => {
-    const originName = file.originalname;
-    const extension = originName.split(".").pop()?.toLocaleLowerCase();
-    const fileNameWithoutExtension = originName.split(".").slice(0, -1).join(".").toLocaleLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9\-]/g, "");
-    const uniqueName = Math.random().toString(36).substring(2) + "-" + Date.now() + "-" + fileNameWithoutExtension;
-    const folder = extension === "pdf" ? "pdfs" : "images";
-    return {
-      folder: `ecovault/${folder}`,
-      public_id: uniqueName,
-      resource_type: "auto"
-    };
-  }
-});
-var multerUpload = multer({ storage });
-
 // src/app/module/category/category.route.ts
 var router3 = Router3();
 router3.get("/", CategoryController.getAllCategories);
 router3.get("/:id", CategoryController.getCategoryById);
 router3.post("/", multerUpload.single("file"), checkAuth(Role.ADMIN, Role.SUPER_ADMIN, Role.MODERATOR), validateRequest(createCategoryZodSchema), CategoryController.createCategory);
-router3.patch("/:id", multerUpload.single("file"), checkAuth(Role.ADMIN, Role.SUPER_ADMIN), validateRequest(updateCategoryZodSchema), CategoryController.updateCategory);
+router3.patch("/:id", multerUpload.single("file"), checkAuth(Role.ADMIN, Role.SUPER_ADMIN, Role.MODERATOR), validateRequest(updateCategoryZodSchema), CategoryController.updateCategory);
 router3.delete("/:id", checkAuth(Role.ADMIN, Role.SUPER_ADMIN), CategoryController.deleteCategory);
 var CategoryRoutes = router3;
 
@@ -4231,7 +4409,7 @@ router5.get("/:id", IdeaController.getIdeaById);
 router5.post("/", multerUpload.array("files", 5), validateRequest(createIdeaZodSchema), checkAuth(Role.ADMIN, Role.SUPER_ADMIN, Role.MODERATOR), IdeaController.createIdea);
 router5.put("/:id", multerUpload.array("files", 5), validateRequest(updateIdeaZodSchema), checkAuth(Role.ADMIN, Role.SUPER_ADMIN, Role.MODERATOR), IdeaController.updateIdea);
 router5.delete("/:id", checkAuth(Role.ADMIN, Role.SUPER_ADMIN, Role.MODERATOR), IdeaController.deleteIdea);
-router5.post("/purchase", checkAuth(Role.MEMBER), IdeaController.purchaseIdea);
+router5.post("/purchase", checkAuth(Role.MODERATOR, Role.MEMBER), IdeaController.purchaseIdea);
 var IdeaRoutes = router5;
 
 // src/app/module/comment/comment.route.ts
@@ -4477,7 +4655,7 @@ var commentReactionZodSchema = z6.object({
 // src/app/module/comment/comment.route.ts
 var router6 = express2.Router();
 router6.get("/idea/:ideaId", CommentController.getCommentsByIdea);
-router6.get("/", checkAuth(Role.ADMIN, Role.SUPER_ADMIN), CommentController.getAllComments);
+router6.get("/", CommentController.getAllComments);
 router6.post(
   "/",
   checkAuth(Role.MEMBER, Role.MODERATOR, Role.ADMIN, Role.SUPER_ADMIN),
@@ -5106,6 +5284,8 @@ import httpStatus19 from "http-status";
 import httpStatus18 from "http-status";
 
 // src/app/module/moderator/moderator.constant.ts
+var moderatorSearchableFields = ["name", "email"];
+var moderatorFilterableFields = ["isActive", "user.status", "isDeleted"];
 var moderatorIncludeConfig = {
   user: {
     select: {
@@ -5169,8 +5349,8 @@ var getAllModerators = async (queryParams) => {
     prisma.moderator,
     queryParams,
     {
-      searchableFields: ["name", "user.email"],
-      filterableFields: ["isActive", "user.status"]
+      searchableFields: moderatorSearchableFields,
+      filterableFields: moderatorFilterableFields
     }
   );
   return await queryBuilder.search().filter().paginate().sort().include(moderatorIncludeConfig).execute();
@@ -5825,6 +6005,8 @@ import httpStatus21 from "http-status";
 import httpStatus20 from "http-status";
 
 // src/app/module/member/member.constant.ts
+var memberSearchableFields = ["name", "email"];
+var memberFilterableFields = ["role", "user.status", "isDeleted"];
 var memberIncludeConfig = {
   _count: {
     select: {
@@ -5847,6 +6029,20 @@ var getMyProfile3 = async (userId) => {
     throw new AppError_default(httpStatus20.NOT_FOUND, "User profile not found");
   }
   return user;
+};
+var updateMyProfile3 = async (userId, payload) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId, isDeleted: false }
+  });
+  if (!user) {
+    throw new AppError_default(httpStatus20.NOT_FOUND, "User profile not found");
+  }
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: payload,
+    include: memberIncludeConfig
+  });
+  return updatedUser;
 };
 var getMyPurchasedIdeas = async (userId) => {
   return await prisma.ideaPurchase.findMany({
@@ -5969,17 +6165,17 @@ var getAllMembers = async (queryParams) => {
     prisma.user,
     queryParams,
     {
-      searchableFields: ["name", "email"],
-      filterableFields: ["role", "status", "isDeleted"]
+      searchableFields: memberSearchableFields,
+      filterableFields: memberFilterableFields
     }
   );
   return await queryBuilder.search().filter().paginate().sort().include(memberIncludeConfig).where({
     role: Role.MEMBER
-    // Only get users with MEMBER role
   }).execute();
 };
 var MemberService = {
   getMyProfile: getMyProfile3,
+  updateMyProfile: updateMyProfile3,
   getMyPurchasedIdeas,
   getMyFollowers,
   getMyFollowing,
@@ -5996,6 +6192,21 @@ var getMyProfile4 = catchAsync(async (req, res) => {
     httpStatusCode: httpStatus21.OK,
     success: true,
     message: "Profile retrieved successfully",
+    data: result
+  });
+});
+var updateMyProfile4 = catchAsync(async (req, res) => {
+  const userId = req.user?.userId;
+  const file = req.file;
+  const payload = {
+    ...req.body,
+    ...file && { image: file.path }
+  };
+  const result = await MemberService.updateMyProfile(userId, payload);
+  sendResponse(res, {
+    httpStatusCode: httpStatus21.OK,
+    success: true,
+    message: "Profile updated successfully",
     data: result
   });
 });
@@ -6062,6 +6273,7 @@ var getAllMembers2 = catchAsync(async (req, res) => {
 });
 var MemberController = {
   getMyProfile: getMyProfile4,
+  updateMyProfile: updateMyProfile4,
   getMyPurchasedIdeas: getMyPurchasedIdeas2,
   getMyFollowers: getMyFollowers2,
   getMyFollowing: getMyFollowing2,
@@ -6070,10 +6282,18 @@ var MemberController = {
   getAllMembers: getAllMembers2
 };
 
+// src/app/module/member/member.interface.ts
+import z15 from "zod";
+var updateMemberZodSchema = z15.object({
+  name: z15.string().optional(),
+  image: z15.string().optional()
+});
+
 // src/app/module/member/member.route.ts
 var router15 = express10.Router();
 router15.use(checkAuth(Role.MEMBER, Role.MODERATOR, Role.ADMIN, Role.SUPER_ADMIN));
 router15.get("/profile", MemberController.getMyProfile);
+router15.patch("/profile", multerUpload.single("file"), validateRequest(updateMemberZodSchema), MemberController.updateMyProfile);
 router15.get("/purchased-ideas", MemberController.getMyPurchasedIdeas);
 router15.get("/followers", MemberController.getMyFollowers);
 router15.get("/following", MemberController.getMyFollowing);
@@ -6271,7 +6491,7 @@ var notFound = (req, res) => {
 
 // src/app/middleware/globalErrorHandler.ts
 import status16 from "http-status";
-import z15 from "zod";
+import z16 from "zod";
 
 // src/app/errorHelpers/handleZodError.ts
 import status14 from "http-status";
@@ -6533,7 +6753,7 @@ var globalErrorHandler = async (err, req, res, next) => {
     message = simplifiedError.message;
     errorSources = [...simplifiedError.errorSources];
     stack = err.stack;
-  } else if (err instanceof z15.ZodError) {
+  } else if (err instanceof z16.ZodError) {
     const simplifiedError = handleZodError(err);
     statusCode = simplifiedError.statusCode;
     message = simplifiedError.message;
@@ -6577,6 +6797,8 @@ app.set("view engine", "ejs");
 app.set("views", path3.resolve(process.cwd(), `src/app/templates`));
 var allowedOrigins = [
   "http://localhost:3000",
+  "http://localhost:5000",
+  "https://ecovault-server.vercel.app",
   envVars.FRONTEND_URL,
   "https://ecovault-client.vercel.app"
 ].filter(Boolean);
