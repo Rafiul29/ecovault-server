@@ -304,7 +304,7 @@ const changeUserStatus = async (user: IRequestUser, payload: IChangeUserStatusPa
     }
 
     if (userStatus === UserStatus.DELETED) {
-        throw new AppError(httpStatus.BAD_REQUEST, "You cannot set user status to deleted. To delete a user, you have to use role specific delete api. For example, to delete an doctor user, you have to use delete doctor api which will set the user status to deleted and also set isDeleted to true and also delete the user session and account");
+        throw new AppError(httpStatus.BAD_REQUEST, "You cannot set user status to deleted. To delete a user, you have to use role specific delete api. For example, to delete an doctor user, you have to use delete moderator api which will set the user status to deleted and also set isDeleted to true and also delete the user session and account");
     }
 
     const updatedUser = await prisma.user.update({
@@ -356,7 +356,7 @@ const changeUserRole = async (user: IRequestUser, payload: IChangeUserRolePayloa
     }
 
     if (userToChangeRole.role === Role.MEMBER || userToChangeRole.role === Role.MODERATOR) {
-        throw new AppError(httpStatus.BAD_REQUEST, "You cannot change the role of doctor or patient user. If you want to change the role of doctor or patient user, you have to delete the user and recreate with new role");
+        throw new AppError(httpStatus.BAD_REQUEST, "You cannot change the role of member or moderator user. If you want to change the role of member or moderator user, you have to delete the user and recreate with new role");
     }
 
     const updatedUser = await prisma.user.update({

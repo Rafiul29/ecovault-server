@@ -95,6 +95,8 @@ export const checkAuth = (...authRoles: Role[]) => async (req: Request, res: Res
             }
         }
 
+        console.log("User from checkAuth:", user)
+
         // 5. Attach user info to request object
         req.user = {
             userId: user.id,

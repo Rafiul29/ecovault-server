@@ -3,36 +3,32 @@ import z from "zod";
 
 export const validateRequest = (zodSchema: z.ZodObject) => {
   return (req: Request, res: Response, next: NextFunction) => {
+    let bodyToValidate = req.body;
 
-    console.log("req.body", req.body)
-    // Log original req.body to see what's actually there
-    console.log("Original req.body keys:", Object.keys(req.body || {}));
+    // Handle multipart/form-data where JSON is sent as a field named "data"
+    // e.g. formData.append("data", JSON.stringify(payload))
+    // Multer may also include trailing whitespace in field names, so we trim.
+    const dataKey = Object.keys(req.body || {}).find(
+      (key) => key.trim() === "data"
+    );
 
-    const dataKey = Object.keys(req.body || {}).find(key => key.trim() === 'data');
-    if (dataKey && req.body[dataKey]) {
+    if (dataKey && typeof req.body[dataKey] === "string") {
       try {
-        const parsedBody = JSON.parse(req.body[dataKey]);
-        req.body = parsedBody;
-        console.log("Successfully parsed 'data' field into req.body");
-      } catch (error: any) {
-        console.error("JSON.parse error in validateRequest:", error.message);
-        // If it's not valid JSON, we might want to still try to use the raw body
+        bodyToValidate = JSON.parse(req.body[dataKey]);
+      } catch {
+        // Not valid JSON — fall through and validate the raw body as-is
       }
     }
-    console.log("req.body", req.body)
-    const parsedResult = zodSchema.safeParse(req.body);
-    console.log("parsedResult", parsedResult)
+
+    const parsedResult = zodSchema.safeParse(bodyToValidate);
 
     if (!parsedResult.success) {
       return next(parsedResult.error);
     }
 
-    //sanitizing the data
+    // Sanitize: only keep fields defined in the schema
     req.body = parsedResult.data;
-    console.log("req.body", req.body)
 
     next();
   };
 };
-
-

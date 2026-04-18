@@ -1659,6 +1659,7 @@ var checkAuth = (...authRoles) => async (req, res, next) => {
         throw new AppError_default(status5.FORBIDDEN, "Forbidden access! You do not have permission to access this resource.");
       }
     }
+    console.log("User from checkAuth:", user);
     req.user = {
       userId: user.id,
       role: user.role,
@@ -1673,25 +1674,21 @@ var checkAuth = (...authRoles) => async (req, res, next) => {
 // src/app/middleware/validateRequest.ts
 var validateRequest = (zodSchema) => {
   return (req, res, next) => {
-    console.log("req.body", req.body);
-    console.log("Original req.body keys:", Object.keys(req.body || {}));
-    const dataKey = Object.keys(req.body || {}).find((key) => key.trim() === "data");
-    if (dataKey && req.body[dataKey]) {
+    let bodyToValidate = req.body;
+    const dataKey = Object.keys(req.body || {}).find(
+      (key) => key.trim() === "data"
+    );
+    if (dataKey && typeof req.body[dataKey] === "string") {
       try {
-        const parsedBody = JSON.parse(req.body[dataKey]);
-        req.body = parsedBody;
-        console.log("Successfully parsed 'data' field into req.body");
-      } catch (error) {
-        console.error("JSON.parse error in validateRequest:", error.message);
+        bodyToValidate = JSON.parse(req.body[dataKey]);
+      } catch {
       }
     }
-    const parsedResult = zodSchema.safeParse(req.body);
-    console.log("parsedResult", parsedResult);
+    const parsedResult = zodSchema.safeParse(bodyToValidate);
     if (!parsedResult.success) {
       return next(parsedResult.error);
     }
     req.body = parsedResult.data;
-    console.log("req.body", req.body);
     next();
   };
 };
@@ -2362,7 +2359,7 @@ var changeUserStatus = async (user, payload) => {
     throw new AppError_default(httpStatus.BAD_REQUEST, "You cannot change the status of another admin. Only super admin can change the status of another admin");
   }
   if (userStatus === UserStatus.DELETED) {
-    throw new AppError_default(httpStatus.BAD_REQUEST, "You cannot set user status to deleted. To delete a user, you have to use role specific delete api. For example, to delete an doctor user, you have to use delete doctor api which will set the user status to deleted and also set isDeleted to true and also delete the user session and account");
+    throw new AppError_default(httpStatus.BAD_REQUEST, "You cannot set user status to deleted. To delete a user, you have to use role specific delete api. For example, to delete an doctor user, you have to use delete moderator api which will set the user status to deleted and also set isDeleted to true and also delete the user session and account");
   }
   const updatedUser = await prisma.user.update({
     where: {
@@ -2400,7 +2397,7 @@ var changeUserRole = async (user, payload) => {
     throw new AppError_default(httpStatus.BAD_REQUEST, "You cannot change your own role");
   }
   if (userToChangeRole.role === Role.MEMBER || userToChangeRole.role === Role.MODERATOR) {
-    throw new AppError_default(httpStatus.BAD_REQUEST, "You cannot change the role of doctor or patient user. If you want to change the role of doctor or patient user, you have to delete the user and recreate with new role");
+    throw new AppError_default(httpStatus.BAD_REQUEST, "You cannot change the role of member or moderator user. If you want to change the role of member or moderator user, you have to delete the user and recreate with new role");
   }
   const updatedUser = await prisma.user.update({
     where: {
@@ -2661,11 +2658,11 @@ var createAdminZodSchema = z2.object({
 });
 var changeUserStatusZodSchema = z2.object({
   userId: z2.string(),
-  status: z2.enum([UserStatus.ACTIVE, UserStatus.BLOCKED, UserStatus.DELETED])
+  userStatus: z2.enum([UserStatus.ACTIVE, UserStatus.BLOCKED, UserStatus.DELETED])
 });
 var changeUserRoleZodSchema = z2.object({
   userId: z2.string(),
-  role: z2.enum([Role.ADMIN, Role.MODERATOR])
+  role: z2.enum([Role.ADMIN, Role.MODERATOR, Role.SUPER_ADMIN, Role.MEMBER])
 });
 
 // src/app/config/multer.config.ts
@@ -2729,7 +2726,6 @@ import multer from "multer";
 var storage = new CloudinaryStorage({
   cloudinary: cloudinaryUpload,
   params: async (req, file) => {
-    console.log("FIle", req.file);
     const originName = file.originalname;
     const extension = originName.split(".").pop()?.toLocaleLowerCase();
     const fileNameWithoutExtension = originName.split(".").slice(0, -1).join(".").toLocaleLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9\-]/g, "");
@@ -2758,34 +2754,6 @@ router2.post(
   validateRequest(createAdminZodSchema),
   AdminController.createAdmin
 );
-router2.get(
-  "/:id",
-  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
-  AdminController.getAdminById
-);
-router2.get(
-  "/public-profile/:id",
-  AdminController.getPublicProfileByUserId
-);
-router2.patch(
-  "/profile",
-  checkAuth(Role.SUPER_ADMIN, Role.ADMIN),
-  multerUpload.single("file"),
-  validateRequest(updateAdminZodSchema),
-  AdminController.updateAdmin
-);
-router2.patch(
-  "/:id",
-  checkAuth(Role.SUPER_ADMIN),
-  multerUpload.single("file"),
-  validateRequest(updateAdminZodSchema),
-  AdminController.updateAdmin
-);
-router2.delete(
-  "/:id",
-  checkAuth(Role.SUPER_ADMIN),
-  AdminController.deleteAdmin
-);
 router2.patch(
   "/change-user-status",
   checkAuth(Role.SUPER_ADMIN, Role.ADMIN),
@@ -2797,6 +2765,17 @@ router2.patch(
   checkAuth(Role.SUPER_ADMIN),
   validateRequest(changeUserRoleZodSchema),
   AdminController.changeUserRole
+);
+router2.get(
+  "/public-profile/:id",
+  AdminController.getPublicProfileByUserId
+);
+router2.patch(
+  "/profile",
+  checkAuth(Role.SUPER_ADMIN, Role.ADMIN),
+  multerUpload.single("file"),
+  validateRequest(updateAdminZodSchema),
+  AdminController.updateAdmin
 );
 router2.get(
   "/users",
@@ -2812,6 +2791,23 @@ router2.delete(
   "/users/:id",
   checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
   AdminController.deleteUserAccount
+);
+router2.get(
+  "/:id",
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  AdminController.getAdminById
+);
+router2.patch(
+  "/:id",
+  checkAuth(Role.SUPER_ADMIN),
+  multerUpload.single("file"),
+  validateRequest(updateAdminZodSchema),
+  AdminController.updateAdmin
+);
+router2.delete(
+  "/:id",
+  checkAuth(Role.SUPER_ADMIN),
+  AdminController.deleteAdmin
 );
 var AdminRoutes = router2;
 

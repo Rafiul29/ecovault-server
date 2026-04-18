@@ -17,7 +17,7 @@ export const createAdminZodSchema = z.object({
 
 export const changeUserStatusZodSchema = z.object({
     userId: z.string(),
-    status: z.enum([UserStatus.ACTIVE, UserStatus.BLOCKED, UserStatus.DELETED]),
+    userStatus: z.enum([UserStatus.ACTIVE, UserStatus.BLOCKED, UserStatus.DELETED]),
 });
 
 export const changeUserRoleZodSchema = z.object({
