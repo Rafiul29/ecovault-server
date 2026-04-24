@@ -9,7 +9,7 @@ model Comment {
   ideaId String
 
   // Nested comments support
-  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   parentId String?
   replies  Comment[] @relation("CommentReplies")
 

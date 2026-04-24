@@ -36,24 +36,37 @@ const createComment = async (payload: ICommentPayload, authorId: string) => {
   return comment;
 };
 
+
+
 const getCommentsByIdea = async (ideaId: string) => {
-  const comments = await prisma.comment.findMany({
-    where: { ideaId, parentId: null, isDeleted: false },
+  const allComments = await prisma.comment.findMany({
+    where: { ideaId, isDeleted: false },
     include: {
       author: { select: { id: true, name: true, image: true } },
-      replies: {
-        where: { isDeleted: false },
-        include: {
-          author: { select: { id: true, name: true, image: true } },
-          reactions: true,
-        },
-      },
       reactions: true,
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: "asc" },
   });
 
-  return comments;
+  const map = new Map();
+  const roots: any[] = [];
+
+  allComments.forEach(comment => {
+    map.set(comment.id, { ...comment, replies: [] });
+  });
+
+  allComments.forEach(comment => {
+    if (comment.parentId) {
+      const parent = map.get(comment.parentId);
+      if (parent) {
+        parent.replies.push(map.get(comment.id));
+      }
+    } else {
+      roots.push(map.get(comment.id));
+    }
+  });
+
+  return roots;
 };
 
 const updateComment = async (id: string, content: string, authorId: string) => {

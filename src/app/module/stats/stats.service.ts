@@ -94,9 +94,10 @@ const getModeratorStatsData = async (user: IRequestUser) => {
         });
 
         const statusGroups = await tx.idea.groupBy({
+
             by: ['status'],
             _count: { id: true },
-            where: { isDeleted: false }
+            where: { authorId: user.userId, isDeleted: false }
         });
 
         return {
