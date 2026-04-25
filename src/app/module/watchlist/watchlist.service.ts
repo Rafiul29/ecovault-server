@@ -45,6 +45,7 @@ const getMyWatchlist = async (userId: string) => {
       idea: {
         include: {
           categories: { include: { category: true } },
+          author: true,
           tags: { include: { tag: true } },
           _count: { select: { votes: true, comments: true } },
         },
