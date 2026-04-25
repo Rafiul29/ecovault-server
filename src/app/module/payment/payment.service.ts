@@ -68,17 +68,23 @@ const handlerStripeWebhookEvent = async (event: Stripe.Event) => {
                         }
                     });
                 }
+                else if (session.payment_status === "unpaid") {
+                    await tx.subscription.delete({
+                        where: { userId }
+                    });
+                }
 
 
 
                 return updatedPayment;
             });
-
+            console.log("result", session.payment_status);
             if (session.payment_status === "paid") {
                 // Generate Invoice and Send Email
                 try {
-
+                    console.log("result", session.payment_status);
                     if (user.role === Role.MEMBER) {
+                        console.log("result", session.payment_status);
                         await prisma.user.update({
                             where: { id: userId },
                             data: {

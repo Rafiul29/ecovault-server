@@ -67,17 +67,17 @@ const createCheckoutSession = catchAsync(async (req: Request, res: Response) => 
     const method = paymentMethod || 'STRIPE';
 
     let result;
-    if (method === 'BKASH') {
-        result = await PaymentService.createBkashSession(userId, ideaId);
-    } else if (method === 'SSLECOMMERCE') {
-        result = await PaymentService.createSslSession(userId, ideaId);
-    } else if (method === 'NAGAD') {
-        result = await PaymentService.createNagadSession(userId, ideaId);
-    } else if (method === 'CARD') {
-        result = await PaymentService.createCardSession(userId, ideaId);
-    } else {
-        result = await PaymentService.createStripeSession(userId, ideaId);
-    }
+    // if (method === 'BKASH') {
+    //     result = await PaymentService.createBkashSession(userId, ideaId);
+    // } else if (method === 'SSLECOMMERCE') {
+    //     result = await PaymentService.createSslSession(userId, ideaId);
+    // } else if (method === 'NAGAD') {
+    //     result = await PaymentService.createNagadSession(userId, ideaId);
+    // } else if (method === 'CARD') {
+    //     result = await PaymentService.createCardSession(userId, ideaId);
+    // } else {
+    result = await PaymentService.createStripeSession(userId, ideaId);
+    // }
     sendResponse(res, {
         httpStatusCode: status.OK,
         success: true,

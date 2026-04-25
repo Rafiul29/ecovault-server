@@ -5,7 +5,7 @@ var __export = (target, all) => {
 };
 
 // src/app.ts
-import express11 from "express";
+import express10 from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { toNodeHandler } from "better-auth/node";
@@ -3894,12 +3894,19 @@ var handlerStripeWebhookEvent = async (event) => {
               isActive: true
             }
           });
+        } else if (session.payment_status === "unpaid") {
+          await tx.subscription.delete({
+            where: { userId: userId2 }
+          });
         }
         return updatedPayment;
       });
+      console.log("result", session.payment_status);
       if (session.payment_status === "paid") {
         try {
+          console.log("result", session.payment_status);
           if (user2.role === Role.MEMBER) {
+            console.log("result", session.payment_status);
             await prisma.user.update({
               where: { id: userId2 },
               data: {
@@ -4960,6 +4967,7 @@ var getMyWatchlist = async (userId) => {
       idea: {
         include: {
           categories: { include: { category: true } },
+          author: true,
           tags: { include: { tag: true } },
           _count: { select: { votes: true, comments: true } }
         }
@@ -5485,7 +5493,6 @@ var ModeratorRoutes = router12;
 
 // src/app/module/payment/payment.route.ts
 import { Router as Router11 } from "express";
-import express9 from "express";
 
 // src/app/module/payment/payment.controller.ts
 import status10 from "http-status";
@@ -5537,17 +5544,7 @@ var createCheckoutSession = catchAsync(async (req, res) => {
   const { ideaId, paymentMethod } = req.body;
   const method = paymentMethod || "STRIPE";
   let result;
-  if (method === "BKASH") {
-    result = await PaymentService.createBkashSession(userId, ideaId);
-  } else if (method === "SSLECOMMERCE") {
-    result = await PaymentService.createSslSession(userId, ideaId);
-  } else if (method === "NAGAD") {
-    result = await PaymentService.createNagadSession(userId, ideaId);
-  } else if (method === "CARD") {
-    result = await PaymentService.createCardSession(userId, ideaId);
-  } else {
-    result = await PaymentService.createStripeSession(userId, ideaId);
-  }
+  result = await PaymentService.createStripeSession(userId, ideaId);
   sendResponse(res, {
     httpStatusCode: status10.OK,
     success: true,
@@ -5614,31 +5611,6 @@ router13.get(
   "/all-purchases",
   checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
   PaymentController.getAllPurchases
-);
-router13.post(
-  "/webhook/stripe",
-  express9.raw({ type: "application/json" }),
-  PaymentController.handleStripeWebhookEvent
-);
-router13.post(
-  "/webhook/bkash",
-  express9.raw({ type: "application/json" }),
-  PaymentController.handleBkashWebhookEvent
-);
-router13.post(
-  "/webhook/sslcommerce",
-  express9.raw({ type: "application/json" }),
-  PaymentController.handleSslWebhookEvent
-);
-router13.post(
-  "/webhook/nagad",
-  express9.raw({ type: "application/json" }),
-  PaymentController.handleNagadWebhookEvent
-);
-router13.post(
-  "/webhook/card",
-  express9.raw({ type: "application/json" }),
-  PaymentController.handleCardWebhookEvent
 );
 var PaymentRoutes = router13;
 
@@ -6000,7 +5972,7 @@ router14.get(
 var SubscriptionRoutes = router14;
 
 // src/app/module/member/member.route.ts
-import express10 from "express";
+import express9 from "express";
 
 // src/app/module/member/member.controller.ts
 import httpStatus21 from "http-status";
@@ -6294,7 +6266,7 @@ var updateMemberZodSchema = z15.object({
 });
 
 // src/app/module/member/member.route.ts
-var router15 = express10.Router();
+var router15 = express9.Router();
 router15.use(checkAuth(Role.MEMBER, Role.MODERATOR, Role.ADMIN, Role.SUPER_ADMIN));
 router15.get("/profile", MemberController.getMyProfile);
 router15.patch("/profile", multerUpload.single("file"), validateRequest(updateMemberZodSchema), MemberController.updateMyProfile);
@@ -6795,7 +6767,7 @@ var globalErrorHandler = async (err, req, res, next) => {
 };
 
 // src/app.ts
-var app = express11();
+var app = express10();
 app.set("query parser", (str) => qs.parse(str));
 app.set("view engine", "ejs");
 app.set("views", path3.resolve(process.cwd(), `src/app/templates`));
@@ -6824,9 +6796,9 @@ app.use(
   })
 );
 app.use("/api/auth", toNodeHandler(auth));
-app.post("/webhook", express11.raw({ type: "application/json" }), PaymentController.handleStripeWebhookEvent);
-app.use(express11.urlencoded({ extended: true }));
-app.use(express11.json());
+app.post("/webhook", express10.raw({ type: "application/json" }), PaymentController.handleStripeWebhookEvent);
+app.use(express10.urlencoded({ extended: true }));
+app.use(express10.json());
 app.use(cookieParser());
 app.get("/", async (req, res) => {
   res.status(201).json({
