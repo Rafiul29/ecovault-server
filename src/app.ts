@@ -52,7 +52,12 @@ app.use(
 
 app.use("/api/auth", toNodeHandler(auth))
 
-app.post("/webhook", express.raw({ type: "application/json" }), PaymentController.handleStripeWebhookEvent)
+// Stripe Webhook MUST be defined before express.json() to receive the raw body
+app.post(
+  "/api/v1/payments/webhook/stripe",
+  express.raw({ type: "application/json" }),
+  PaymentController.handleStripeWebhookEvent
+);
 
 
 app.use(express.urlencoded({ extended: true }));

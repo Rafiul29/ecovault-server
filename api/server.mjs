@@ -6796,7 +6796,11 @@ app.use(
   })
 );
 app.use("/api/auth", toNodeHandler(auth));
-app.post("/webhook", express10.raw({ type: "application/json" }), PaymentController.handleStripeWebhookEvent);
+app.post(
+  "/api/v1/payments/webhook/stripe",
+  express10.raw({ type: "application/json" }),
+  PaymentController.handleStripeWebhookEvent
+);
 app.use(express10.urlencoded({ extended: true }));
 app.use(express10.json());
 app.use(cookieParser());

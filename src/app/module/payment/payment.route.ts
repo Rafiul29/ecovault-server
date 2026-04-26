@@ -27,11 +27,8 @@ router.get(
   PaymentController.getAllPurchases
 );
 
-// router.post(
-//   '/webhook/stripe',
-//   express.raw({ type: 'application/json' }),
-//   PaymentController.handleStripeWebhookEvent
-// );
+// Webhook route is moved to app.ts to bypass global express.json()
+
 
 // router.post(
 //   '/webhook/bkash',
