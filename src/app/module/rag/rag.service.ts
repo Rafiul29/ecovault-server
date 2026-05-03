@@ -26,6 +26,10 @@ export class RAGService {
         return this.indexingService.indexAttachmentsData();
     }
 
+    async ingestPlatformData() {
+        return this.indexingService.indexPlatformData();
+    }
+
     async retieveRelevantDocuments(
         query: string,
         limit: number = 5,

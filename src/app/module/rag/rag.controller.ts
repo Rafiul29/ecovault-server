@@ -40,6 +40,16 @@ const ingestAttachmentsData = catchAsync(async (req: Request, res: Response) => 
     });
 });
 
+const ingestPlatformData = catchAsync(async (req: Request, res: Response) => {
+    const result = await ragService.ingestPlatformData();
+    sendResponse(res, {
+        httpStatusCode: httpStatus.OK,
+        success: true,
+        message: 'Platform FAQs and description indexed successfully',
+        data: result,
+    });
+});
+
 const qyeryRag = catchAsync(async (req: Request, res: Response) => {
     const { query, limit, sourceType } = req.body;
     if (!query) {
@@ -100,5 +110,6 @@ export const RagController = {
     getStats,
     ingestIdeasData,
     ingestAttachmentsData,
+    ingestPlatformData,
     qyeryRag,
 }
