@@ -15,6 +15,7 @@ import { PaymentRoutes } from "../module/payment/payment.route";
 import { SubscriptionRoutes } from "../module/subscription/subscription.route";
 import { MemberRoutes } from "../module/member/member.route";
 import { StatsRoutes } from "../module/stats/stats.route";
+import { RagRoutes } from "../module/rag/rag.route";
 
 const router = Router();
 
@@ -34,5 +35,6 @@ router.use("/payments", PaymentRoutes);
 router.use("/subscriptions", SubscriptionRoutes);
 router.use("/members", MemberRoutes);
 router.use("/stats", StatsRoutes);
+router.use("/rag", RagRoutes)
 
 export const IndexRoutes: Router = router;
