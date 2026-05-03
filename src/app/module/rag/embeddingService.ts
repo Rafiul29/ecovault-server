@@ -6,13 +6,19 @@ export class EmbeddingService {
     private embeddingModel: string;
 
     constructor() {
-        this.apiKey = envVars.RAG.OPENROUTER_API_KEY || "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"
-        this.embeddingModel = envVars.RAG.OPENROUTER_EMBEDDING_MODEL || "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"
+        // Remove the hardcoded "sk-or-v1-..." string entirely
+        this.apiKey = envVars.RAG.OPENROUTER_API_KEY;
+        this.embeddingModel = envVars.RAG.OPENROUTER_EMBEDDING_MODEL || "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free";
 
-        if (!this.apiKey || !this.embeddingModel) {
-            throw new Error("Missing OpenRouter configuration")
+        if (!this.apiKey) {
+            throw new Error("Missing OpenRouter API Key in environment variables");
+        }
+
+        if (!this.embeddingModel) {
+            throw new Error("Missing OpenRouter embedding model configuration");
         }
     }
+
     async generateEmbedding(text: string) {
         try {
             const response = await fetch(`${this.apiUrl}/embeddings`, {
