@@ -318,7 +318,7 @@ This document provides a high-level overview of the core features and pages for 
     *   Vercel, render, ralway for hosting and deployment.
 
 * * *
-
+<!-- CREATE EXTENSION IF NOT EXISTS "vector" -->
 ### **Submission Guidelines:**
 
 1. **GitHub repository** with a clear README explaining setup and functionality.
