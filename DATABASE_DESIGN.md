@@ -16,6 +16,7 @@ erDiagram
     User ||--o{ Notification : "receives"
     User ||--o{ Payment : "makes"
     User ||--o| Subscription : "has"
+    User ||--o{ Webhook : "owns"
     User ||--o{ AuditLog : "triggers"
     User ||--o{ SearchHistory : "performs"
     User ||--o{ IdeaPurchase : "acquires"
